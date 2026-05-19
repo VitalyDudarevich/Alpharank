@@ -27,11 +27,15 @@ const actionBtnClass =
 type NewLeagueFormProps = {
   creatorDisplayName: string;
   creatorUserId: string;
+  onCreated?: (leagueId: string, name: string, year: number | null) => void;
+  onCancel?: () => void;
 };
 
 export function NewLeagueForm({
   creatorDisplayName,
   creatorUserId,
+  onCreated,
+  onCancel,
 }: NewLeagueFormProps) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -96,8 +100,15 @@ export function NewLeagueForm({
         return;
       }
       toast.success("Лига создана");
-      router.push(`/?highlight=${result.leagueId}`);
-      router.refresh();
+      const year = endsAt
+        ? parseInt(endsAt.slice(0, 4), 10) || new Date().getFullYear()
+        : new Date().getFullYear();
+      if (onCreated) {
+        onCreated(result.leagueId, name.trim(), year);
+      } else {
+        router.push(`/?highlight=${result.leagueId}`);
+        router.refresh();
+      }
     });
   };
 
@@ -190,15 +201,29 @@ export function NewLeagueForm({
         />
 
         <div className="mt-8 grid grid-cols-2 gap-2">
-          <Link
-            href="/"
-            className={cn(
-              actionBtnClass,
-              "border border-zinc-700 bg-transparent text-zinc-100 hover:bg-zinc-800"
-            )}
-          >
-            Отмена
-          </Link>
+          {onCancel ? (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={pending}
+              className={cn(
+                actionBtnClass,
+                "border border-zinc-700 bg-transparent text-zinc-100 hover:bg-zinc-800 disabled:opacity-50"
+              )}
+            >
+              Отмена
+            </button>
+          ) : (
+            <Link
+              href="/"
+              className={cn(
+                actionBtnClass,
+                "border border-zinc-700 bg-transparent text-zinc-100 hover:bg-zinc-800"
+              )}
+            >
+              Отмена
+            </Link>
+          )}
           <Button
             type="submit"
             className="h-11 w-full min-w-0"

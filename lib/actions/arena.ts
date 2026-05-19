@@ -150,10 +150,6 @@ export async function startBattle(params: {
 
   const { leagueId, gameId, memberIds } = params;
 
-  if (memberIds.length < 2) {
-    return { error: "Нужно минимум 2 участника" };
-  }
-
   const { data: existingActive } = await supabase
     .from("sessions")
     .select("id")
@@ -174,14 +170,16 @@ export async function startBattle(params: {
 
   if (!game) return { error: "Игра не найдена в этой лиге" };
 
-  const { data: members } = await supabase
-    .from("league_members")
-    .select("id")
-    .eq("league_id", leagueId)
-    .in("id", memberIds);
+  if (memberIds.length > 0) {
+    const { data: members } = await supabase
+      .from("league_members")
+      .select("id")
+      .eq("league_id", leagueId)
+      .in("id", memberIds);
 
-  if (!members || members.length !== memberIds.length) {
-    return { error: "Участники должны быть из списка лиги" };
+    if (!members || members.length !== memberIds.length) {
+      return { error: "Участники должны быть из списка лиги" };
+    }
   }
 
   const today = new Date().toISOString().split("T")[0];
@@ -203,13 +201,15 @@ export async function startBattle(params: {
     return { error: error?.message ?? "Не удалось создать сражение" };
   }
 
-  const { error: partError } = await supabase.from("session_participants").insert(
-    memberIds.map((member_id) => ({ session_id: session.id, member_id }))
-  );
+  if (memberIds.length > 0) {
+    const { error: partError } = await supabase
+      .from("session_participants")
+      .insert(memberIds.map((member_id) => ({ session_id: session.id, member_id })));
 
-  if (partError) {
-    await supabase.from("sessions").delete().eq("id", session.id);
-    return { error: partError.message };
+    if (partError) {
+      await supabase.from("sessions").delete().eq("id", session.id);
+      return { error: partError.message };
+    }
   }
 
   await supabase.from("audit_logs").insert({

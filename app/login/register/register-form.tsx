@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { createProfile } from "@/lib/actions/profile";
 import {
   authButtonClass,
   authCardClass,
@@ -16,7 +14,6 @@ import {
 import { cn } from "@/lib/utils";
 
 export function RegisterForm() {
-  const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -47,34 +44,42 @@ export function RegisterForm() {
     }
 
     setLoading(true);
-    const supabase = createClient();
-    const { data, error: authError } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: { display_name: trimmedName },
-      },
-    });
 
-    if (authError) {
-      setLoading(false);
-      setError(authErrorMessage(authError.message));
-      return;
-    }
+    try {
+      const supabase = createClient();
+      const { data, error: authError } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: { display_name: trimmedName },
+        },
+      });
 
-    if (data.session) {
-      const profileResult = await createProfile(trimmedName);
-      setLoading(false);
-      if (profileResult.error) {
-        setError(profileResult.error);
+      if (authError) {
+        setError(authErrorMessage(authError.message));
         return;
       }
-      router.push("/");
-      router.refresh();
-    } else {
-      setLoading(false);
+
+      if (data.session && data.user) {
+        const { error: profileError } = await supabase.from("profiles").upsert({
+          id: data.user.id,
+          display_name: trimmedName,
+          updated_at: new Date().toISOString(),
+        });
+
+        if (profileError) {
+          setError(profileError.message);
+          return;
+        }
+
+        window.location.assign("/");
+        return;
+      }
+
       setNeedsConfirm(true);
+    } finally {
+      setLoading(false);
     }
   };
 

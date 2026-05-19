@@ -202,6 +202,8 @@ export function TodayPageClient() {
           sessionId={sessionId}
           game={activeGame}
           members={battleMembers}
+          allLeagueMembers={members}
+          onParticipantsUpdated={() => void reloadArena()}
           sessionScoreEvents={sessionScoreEvents}
           logEvents={logEvents}
           actorNames={actorNames}
@@ -225,7 +227,8 @@ export function TodayPageClient() {
             <Swords className="mx-auto mb-4 h-12 w-12 text-violet-400/60" />
             <p className="mb-2 font-medium text-zinc-200">Нет активного сражения</p>
             <p className="mb-6 text-sm text-zinc-500">
-              Выберите игру и участников, затем начните учёт очков
+              Выберите игру и при желании участников. Сражения видят только члены
+              лиги.
             </p>
             <Button
               type="button"

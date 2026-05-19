@@ -175,7 +175,7 @@ export function LeaguePicker({
               <li className="px-4 py-6 text-center text-sm text-zinc-500">
                 {leagues.length === 0 ? (
                   <Link
-                    href="/league/new"
+                    href="/?create=1"
                     className="text-violet-400 hover:text-violet-300"
                   >
                     Создать лигу
@@ -211,7 +211,7 @@ export function LeaguePicker({
           {!loading && leagues.length > 0 && (
             <div className="border-t border-zinc-800 p-2">
               <Link
-                href="/league/new"
+                href="/?create=1"
                 onClick={() => setOpen(false)}
                 className="flex items-center justify-center gap-1 rounded-lg py-2 text-xs text-violet-400 hover:bg-zinc-800/60 hover:text-violet-300"
               >

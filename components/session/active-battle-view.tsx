@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { endBattle } from "@/lib/actions/arena";
 import { DeferredArenaWinsChart } from "./deferred-arena-wins-chart";
 import { BattleScoreboard } from "./battle-scoreboard";
+import { ParticipantPicker } from "./participant-picker";
 import { SessionEventLog, type SessionLogEvent } from "./session-event-log";
 import { useSessionScoreEvents } from "./use-session-score-events";
 import { winCountsFromEvents } from "@/lib/arena-games";
@@ -27,6 +28,8 @@ type ActiveBattleViewProps = {
   sessionId: string;
   game: Game;
   members: LeagueMember[];
+  allLeagueMembers: LeagueMember[];
+  onParticipantsUpdated?: () => void;
   sessionScoreEvents: SessionScoreEvent[];
   logEvents: SessionLogEvent[];
   actorNames: Record<string, string>;
@@ -69,6 +72,8 @@ export function ActiveBattleView({
   sessionId,
   game,
   members,
+  allLeagueMembers,
+  onParticipantsUpdated,
   sessionScoreEvents,
   logEvents,
   actorNames,
@@ -84,6 +89,7 @@ export function ActiveBattleView({
   const [ending, startEndTransition] = useTransition();
   const [now, setNow] = useState(() => Date.now());
   const memberIds = members.map((m) => m.id);
+  const canScore = memberIds.length >= 2;
 
   useEffect(() => {
     if (!startedAt) return;
@@ -186,27 +192,54 @@ export function ActiveBattleView({
         </ul>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900/80">
-        <div className="border-b border-zinc-800 px-4 py-3">
-          <h2 className="text-sm font-medium text-zinc-400">Очки</h2>
-        </div>
-        <BattleScoreboard
-          leagueId={leagueId}
-          sessionId={sessionId}
-          gameId={game.id}
-          gameName={game.name}
-          members={members}
-          participantIds={memberIds}
-          winCounts={winCounts}
-          eloEnabled={eloEnabled}
-          eloK={eloK}
-          disabled={scoringDisabled}
-          onWinRecorded={onTotalsRefresh}
-          onEventAdded={appendEvent}
-        />
-      </section>
+      {!canScore ? (
+        <section className="space-y-3 rounded-2xl border border-zinc-700 bg-zinc-900/80 p-4">
+          <p className="text-sm text-zinc-400">
+            {allLeagueMembers.length === 0
+              ? "В лиге пока нет участников. Добавьте людей на странице «Участники», затем выберите их для учёта очков."
+              : "Выберите минимум двух участников сражения, чтобы вести счёт."}
+          </p>
+          {allLeagueMembers.length > 0 && (
+            <ParticipantPicker
+              leagueId={leagueId}
+              sessionId={sessionId}
+              allMembers={allLeagueMembers}
+              selectedIds={memberIds}
+              onSelectionChange={() => onParticipantsUpdated?.()}
+              gameId={game.id}
+              gameName={game.name}
+              winCounts={winCounts}
+              eloEnabled={eloEnabled}
+              eloK={eloK}
+              winsDisabled={scoringDisabled}
+              embedded
+              onWinRecorded={() => onTotalsRefresh?.()}
+            />
+          )}
+        </section>
+      ) : (
+        <section className="overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900/80">
+          <div className="border-b border-zinc-800 px-4 py-3">
+            <h2 className="text-sm font-medium text-zinc-400">Очки</h2>
+          </div>
+          <BattleScoreboard
+            leagueId={leagueId}
+            sessionId={sessionId}
+            gameId={game.id}
+            gameName={game.name}
+            members={members}
+            participantIds={memberIds}
+            winCounts={winCounts}
+            eloEnabled={eloEnabled}
+            eloK={eloK}
+            disabled={scoringDisabled}
+            onWinRecorded={onTotalsRefresh}
+            onEventAdded={appendEvent}
+          />
+        </section>
+      )}
 
-      {scoringDisabled && (
+      {scoringDisabled && canScore && (
         <p className="text-center text-sm text-amber-400/90">
           Запись очков недоступна: лига или игра завершены
         </p>

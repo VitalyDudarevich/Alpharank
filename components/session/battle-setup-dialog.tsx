@@ -36,7 +36,7 @@ export function BattleSetupDialog({
     const validSuggested = suggestedMemberIds.filter((id) =>
       members.some((m) => m.id === id)
     );
-    setSelectedIds(validSuggested.length >= 2 ? validSuggested : []);
+    setSelectedIds(validSuggested);
     setGameId(games[0]?.id ?? "");
   }, [open, suggestedMemberIds, members, games]);
 
@@ -60,7 +60,7 @@ export function BattleSetupDialog({
     );
   };
 
-  const canStart = gameId && selectedIds.length >= 2;
+  const canStart = Boolean(gameId) && games.length > 0;
 
   const sortedMembers = useMemo(
     () =>
@@ -72,7 +72,7 @@ export function BattleSetupDialog({
 
   const handleStart = () => {
     if (!canStart) {
-      toast.error("Выберите игру и минимум 2 участников из лиги");
+      toast.error("Выберите игру");
       return;
     }
     startTransition(async () => {
@@ -163,8 +163,15 @@ export function BattleSetupDialog({
               <span className="text-zinc-600">({selectedIds.length})</span>
             </p>
             <p className="text-xs text-zinc-600">
-              Только из списка лиги. Минимум 2 человека.
+              Необязательно. Сражение видят только участники лиги. Без выбора
+              участников счёт пока не ведётся.
             </p>
+            {sortedMembers.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-zinc-700 px-4 py-6 text-center text-sm text-zinc-500">
+                В лиге пока никого нет — можно начать сражение и добавить людей
+                позже.
+              </p>
+            ) : (
             <ul className="max-h-48 space-y-1 overflow-y-auto rounded-xl border border-zinc-700 p-1">
               {sortedMembers.map((m) => {
                 const checked = selectedIds.includes(m.id);
@@ -196,6 +203,7 @@ export function BattleSetupDialog({
                 );
               })}
             </ul>
+            )}
           </section>
         </div>
 

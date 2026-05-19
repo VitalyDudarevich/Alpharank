@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { useLeague } from "@/lib/league-context";
 import { createClient } from "@/lib/supabase/client";
+import { AppPageHeader } from "@/components/layout/app-page-header";
+import { NewLeagueForm } from "@/components/league/new-league-form";
+import { writeLastLeagueId } from "@/lib/last-league";
 import { deleteLeague, updateLeagueName } from "@/lib/actions/league";
 import { addGameByName, deleteGame } from "@/lib/actions/games";
 import {
@@ -47,10 +48,19 @@ type LeagueDetails = {
   myRole: MemberRole;
 };
 
-export function LeaguePageClient() {
+type LeaguesPageClientProps = {
+  userId: string;
+  creatorDisplayName: string;
+  initialCreate?: boolean;
+};
+
+export function LeaguesPageClient({
+  userId,
+  creatorDisplayName,
+  initialCreate = false,
+}: LeaguesPageClientProps) {
   const router = useRouter();
-  const { leagueId, league, members, games, currentMember, userId } =
-    useLeague();
+  const [creating, setCreating] = useState(initialCreate);
 
   const [userLeagues, setUserLeagues] = useState<UserLeague[]>([]);
   const [loadingLeagues, setLoadingLeagues] = useState(true);
@@ -72,27 +82,6 @@ export function LeaguePageClient() {
     id: string;
     name: string;
   } | null>(null);
-
-  const syncCurrentLeagueCache = useCallback(() => {
-    setDetailsCache((prev) => ({
-      ...prev,
-      [leagueId]: {
-        name: league.name,
-        year: league.year,
-        invite_token: league.invite_token,
-        ends_at: league.ends_at,
-        target_wins: league.target_wins,
-        concluded_at: league.concluded_at,
-        games,
-        members,
-        myRole: currentMember.role,
-      },
-    }));
-  }, [leagueId, league, games, members, currentMember.role]);
-
-  useEffect(() => {
-    syncCurrentLeagueCache();
-  }, [syncCurrentLeagueCache]);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,10 +111,6 @@ export function LeaguePageClient() {
 
   const loadLeagueDetails = useCallback(
     async (id: string) => {
-      if (id === leagueId) {
-        syncCurrentLeagueCache();
-        return;
-      }
       setLoadingDetails((prev) => new Set(prev).add(id));
       const supabase = createClient();
 
@@ -154,9 +139,7 @@ export function LeaguePageClient() {
       ]);
 
       if (leagueRes.data) {
-        setDetailsCache((prev) => {
-          if (prev[id]) return prev;
-          return {
+        setDetailsCache((prev) => ({
           ...prev,
           [id]: {
             name: leagueRes.data.name,
@@ -169,8 +152,7 @@ export function LeaguePageClient() {
             members: (membersRes.data ?? []) as LeagueMember[],
             myRole: (myRes.data?.role ?? "member") as MemberRole,
           },
-        };
-        });
+        }));
       }
 
       setLoadingDetails((prev) => {
@@ -179,7 +161,7 @@ export function LeaguePageClient() {
         return next;
       });
     },
-    [leagueId, syncCurrentLeagueCache, userId]
+    [userId]
   );
 
   const loadWinTotals = useCallback(async (id: string) => {
@@ -196,6 +178,7 @@ export function LeaguePageClient() {
         if (editingId === id) setEditingId(null);
       } else {
         next.add(id);
+        writeLastLeagueId(id);
         void loadLeagueDetails(id);
         void loadWinTotals(id);
       }
@@ -241,9 +224,9 @@ export function LeaguePageClient() {
 
       toast.success("Сохранено");
       setEditingId(null);
-      if (id === leagueId) router.refresh();
-      else await loadLeagueDetails(id);
+      await loadLeagueDetails(id);
       await loadWinTotals(id);
+      router.refresh();
     });
   };
 
@@ -255,9 +238,9 @@ export function LeaguePageClient() {
         return;
       }
       toast.success("Лига продолжена — можно снова записывать результаты");
-      if (id === leagueId) router.refresh();
-      else await loadLeagueDetails(id);
+      await loadLeagueDetails(id);
       await loadWinTotals(id);
+      router.refresh();
     });
   };
 
@@ -285,10 +268,7 @@ export function LeaguePageClient() {
         delete next[id];
         return next;
       });
-      if (id === leagueId) {
-        router.push("/");
-        router.refresh();
-      }
+      router.refresh();
     });
   };
 
@@ -306,16 +286,27 @@ export function LeaguePageClient() {
       toast.error(result.error);
       throw new Error(result.error);
     }
-    if (id === leagueId) router.refresh();
-    else await loadLeagueDetails(id);
+    await loadLeagueDetails(id);
   };
 
   const handleDeleteGame = (leagueIdTarget: string, gameId: string) => {
     startTransition(async () => {
       await deleteGame(leagueIdTarget, gameId);
-      if (leagueIdTarget === leagueId) router.refresh();
-      else await loadLeagueDetails(leagueIdTarget);
+      await loadLeagueDetails(leagueIdTarget);
     });
+  };
+
+  const handleLeagueCreated = (leagueId: string, name: string, year: number | null) => {
+    setCreating(false);
+    setUserLeagues((prev) => {
+      if (prev.some((l) => l.id === leagueId)) return prev;
+      return [{ id: leagueId, name, year }, ...prev];
+    });
+    setExpandedIds((prev) => new Set(prev).add(leagueId));
+    writeLastLeagueId(leagueId);
+    void loadLeagueDetails(leagueId);
+    void loadWinTotals(leagueId);
+    router.refresh();
   };
 
   const startEdit = (id: string, details: LeagueDetails) => {
@@ -342,27 +333,30 @@ export function LeaguePageClient() {
   };
 
   return (
-    <main className="px-4 pt-6 pb-8">
-      <header className="mb-6 flex items-center justify-between gap-3">
-        <h1 className="text-xl font-bold">Лига</h1>
-        <Link href="/league/new">
-          <Button size="sm" variant="outline" className="gap-1">
-            <Plus className="h-4 w-4" />
-            Создать
-          </Button>
-        </Link>
-      </header>
+    <>
+      <AppPageHeader title="Лиги" titleClassName="text-2xl" />
+      <p className="-mt-4 mb-6 text-center text-sm text-zinc-500">
+        Условия долгосрочной игры: игры, сроки и лимит побед
+      </p>
+
+      {creating && (
+        <div className="mb-6">
+          <NewLeagueForm
+            creatorDisplayName={creatorDisplayName}
+            creatorUserId={userId}
+            onCreated={handleLeagueCreated}
+            onCancel={() => setCreating(false)}
+          />
+        </div>
+      )}
 
       {loadingLeagues ? (
         <p className="text-sm text-zinc-500">Загрузка…</p>
-      ) : userLeagues.length === 0 ? (
+      ) : userLeagues.length === 0 && !creating ? (
         <Card className="text-center text-sm text-zinc-400">
-          <p className="mb-3">Пока нет лиг</p>
-          <Link href="/league/new">
-            <Button size="sm">Создать лигу</Button>
-          </Link>
+          <p>Пока нет лиг</p>
         </Card>
-      ) : (
+      ) : userLeagues.length > 0 ? (
         <ul className="space-y-2">
           {userLeagues.map((l) => {
             const expanded = expandedIds.has(l.id);
@@ -599,18 +593,8 @@ export function LeaguePageClient() {
                                     },
                                   };
                                 });
-                                if (l.id === leagueId) router.refresh();
                               }}
                             />
-
-                            {l.id !== leagueId && (
-                              <Link
-                                href={`/league/${l.id}/today`}
-                                className="mt-4 block text-center text-sm text-violet-400 hover:text-violet-300"
-                              >
-                                Открыть лигу →
-                              </Link>
-                            )}
                           </div>
 
                           {editing && isOwner && (
@@ -660,6 +644,19 @@ export function LeaguePageClient() {
             );
           })}
         </ul>
+      ) : null}
+
+      {!creating && (
+        <div className="mt-6">
+          <Button
+            type="button"
+            className="h-12 w-full text-base font-semibold"
+            onClick={() => setCreating(true)}
+          >
+            <Plus className="h-5 w-5" />
+            Новая лига
+          </Button>
+        </div>
       )}
 
       <DeleteLeagueDialog
@@ -669,6 +666,6 @@ export function LeaguePageClient() {
         onClose={() => setLeagueToDelete(null)}
         onConfirm={confirmDeleteLeague}
       />
-    </main>
+    </>
   );
 }

@@ -1,20 +1,10 @@
 import { createBrowserClient } from "@supabase/ssr";
 
-export function createClient(rememberMe = true) {
+/** Сессия в cookies — нужна для middleware и Server Actions (@supabase/ssr). */
+export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      auth: {
-        persistSession: rememberMe,
-        storage:
-          typeof window !== "undefined"
-            ? rememberMe
-              ? window.localStorage
-              : window.sessionStorage
-            : undefined,
-      },
-    }
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 }
 

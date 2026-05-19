@@ -75,7 +75,7 @@ export async function createLeague(
   }
 
   const displayName = await requireProfileDisplayName(supabase, user.id);
-  if (!displayName) redirect("/profile?redirect=/league/new");
+  if (!displayName) redirect("/profile?redirect=/?create=1");
 
   const inviteToken = nanoid(24);
 

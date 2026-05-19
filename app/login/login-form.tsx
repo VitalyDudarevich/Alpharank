@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, Eye, EyeOff } from "lucide-react";
 import { createClient, REMEMBER_EMAIL_KEY } from "@/lib/supabase/client";
 import { AuthCheckbox } from "@/components/login/auth-checkbox";
@@ -18,7 +18,6 @@ import {
 import { cn } from "@/lib/utils";
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") ?? "/";
 
@@ -42,27 +41,33 @@ export function LoginForm() {
     setLoading(true);
     setError("");
 
-    const supabase = createClient(remember);
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    const supabase = createClient();
 
-    setLoading(false);
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    if (authError) {
-      setError(authErrorMessage(authError.message));
-      return;
+      if (authError) {
+        setError(authErrorMessage(authError.message));
+        return;
+      }
+
+      if (remember) {
+        localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim());
+      } else {
+        localStorage.removeItem(REMEMBER_EMAIL_KEY);
+      }
+
+      const target =
+        redirectTo.startsWith("/") && !redirectTo.startsWith("//")
+          ? redirectTo
+          : "/";
+      window.location.assign(target);
+    } finally {
+      setLoading(false);
     }
-
-    if (remember) {
-      localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim());
-    } else {
-      localStorage.removeItem(REMEMBER_EMAIL_KEY);
-    }
-
-    router.push(redirectTo);
-    router.refresh();
   };
 
   return (

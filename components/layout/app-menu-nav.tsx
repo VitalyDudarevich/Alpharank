@@ -55,7 +55,7 @@ export function buildAppMenuLinks(
   links.push(
     {
       href: "/",
-      label: "Мои лиги",
+      label: "Лиги",
       icon: Home,
       active: pathname === "/",
     },
