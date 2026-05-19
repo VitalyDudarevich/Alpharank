@@ -31,8 +31,9 @@ export async function updateSession(request: NextRequest) {
   );
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   const isAuthPage =
     request.nextUrl.pathname.startsWith("/login") ||
@@ -48,7 +49,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthPage) {
+  const isResetPassword = request.nextUrl.pathname.startsWith(
+    "/auth/reset-password"
+  );
+
+  if (user && isAuthPage && !isResetPassword) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

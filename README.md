@@ -24,11 +24,44 @@
 ### 1. Supabase
 
 1. Создайте проект на [supabase.com](https://supabase.com)
-2. В **SQL Editor** выполните файл [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql)
-3. В **Authentication → Providers** включите Email и при необходимости Google
-4. В **Authentication → URL Configuration** добавьте:
-   - Site URL: `http://localhost:3000`
-   - Redirect URLs: `http://localhost:3000/auth/callback`
+
+#### Вариант A — SQL Editor (проще, без CLI)
+
+В **SQL Editor** выполните по порядку содержимое файлов:
+
+- [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql)
+- [`supabase/migrations/002_fix_league_create_rls.sql`](supabase/migrations/002_fix_league_create_rls.sql)
+
+#### Вариант B — Supabase CLI (`db push`)
+
+Ошибка `Cannot find project ref` значит, что проект ещё не привязан. Один раз:
+
+```powershell
+cd D:\Projects\alphaRank
+
+# 1. Войти в аккаунт Supabase (откроется браузер)
+npx supabase login
+
+# 2. Project ref: Dashboard → Project Settings → General → Reference ID
+#    (например: abcdefghijklmnop)
+npx supabase link --project-ref ВАШ_PROJECT_REF
+
+# 3. Ввести пароль БД (Dashboard → Project Settings → Database → Database password)
+npx supabase db push
+```
+
+Либо без `link`, одной командой с URI (Settings → Database → Connection string → URI):
+
+```powershell
+npx supabase db push --db-url "postgresql://postgres.[ref]:[PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres"
+```
+3. В **Authentication → Providers → Email** включите вход по паролю (Email + Password)
+4. При необходимости отключите «Confirm email» для быстрого теста с друзьями
+5. В **Authentication → URL Configuration** добавьте:
+   - Site URL: `http://localhost:3000` (и URL Vercel на проде)
+   - Redirect URLs:
+     - `http://localhost:3000/auth/callback`
+     - `https://ваш-домен.vercel.app/auth/callback`
 
 ### 2. Переменные окружения
 
@@ -61,7 +94,7 @@ npm run dev
 
 ## Использование
 
-1. Войдите по email (magic link) или Google
+1. Зарегистрируйтесь или войдите по email и паролю
 2. Создайте лигу → добавьте игры → пригласите друзей по ссылке
 3. На экране **Сегодня** отметьте участников и тапайте **+1** на победителя
 4. Смотрите статистику с нужными фильтрами

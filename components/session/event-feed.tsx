@@ -20,10 +20,24 @@ interface EventFeedProps {
   leagueId: string;
   initialEvents: FeedEvent[];
   currentUserId: string;
+  memberNames: Record<string, string>;
+  gameNames: Record<string, string>;
+  filterGameId?: string;
 }
 
-export function EventFeed({ leagueId, initialEvents, currentUserId }: EventFeedProps) {
+export function EventFeed({
+  leagueId,
+  initialEvents,
+  currentUserId,
+  memberNames,
+  gameNames,
+  filterGameId,
+}: EventFeedProps) {
   const [events, setEvents] = useState(initialEvents);
+
+  useEffect(() => {
+    setEvents(initialEvents);
+  }, [initialEvents]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -38,38 +52,45 @@ export function EventFeed({ leagueId, initialEvents, currentUserId }: EventFeedP
           table: "score_events",
           filter: `league_id=eq.${leagueId}`,
         },
-        () => {
-          supabase
-            .from("score_events")
-            .select(
-              `
-              id, created_at, created_by, deleted_at,
-              winner:league_members!winner_member_id(display_name),
-              game:games(name)
-            `
-            )
-            .eq("league_id", leagueId)
-            .is("deleted_at", null)
-            .order("created_at", { ascending: false })
-            .limit(20)
-            .then(({ data }) => {
-              if (data) {
-                setEvents(
-                  data.map((e) => {
-                    const winner = e.winner as { display_name: string } | { display_name: string }[] | null;
-                    const game = e.game as { name: string } | { name: string }[] | null;
-                    return {
-                      id: e.id,
-                      winner_name: Array.isArray(winner) ? winner[0]?.display_name : winner?.display_name ?? "?",
-                      game_name: Array.isArray(game) ? game[0]?.name : game?.name ?? "?",
-                      actor_name: "",
-                      created_at: e.created_at,
-                      created_by: e.created_by,
-                    };
-                  })
-                );
-              }
-            });
+        (payload) => {
+          if (payload.eventType === "INSERT" && payload.new) {
+            const row = payload.new as {
+              id: string;
+              winner_member_id: string;
+              game_id: string;
+              created_by: string;
+              created_at: string;
+              deleted_at: string | null;
+            };
+            if (row.deleted_at) return;
+            if (filterGameId && row.game_id !== filterGameId) return;
+            setEvents((prev) => [
+              {
+                id: row.id,
+                winner_name: memberNames[row.winner_member_id] ?? "?",
+                game_name: gameNames[row.game_id] ?? "?",
+                actor_name: "",
+                created_at: row.created_at,
+                created_by: row.created_by,
+              },
+              ...prev.filter((e) => e.id !== row.id),
+            ].slice(0, 20));
+            return;
+          }
+
+          if (payload.eventType === "UPDATE" && payload.new) {
+            const row = payload.new as { id: string; deleted_at: string | null };
+            if (row.deleted_at) {
+              setEvents((prev) => prev.filter((e) => e.id !== row.id));
+            }
+            return;
+          }
+
+          // Fallback: полная перезагрузка только при необходимости
+          if (payload.eventType === "DELETE") {
+            const old = payload.old as { id: string };
+            setEvents((prev) => prev.filter((e) => e.id !== old.id));
+          }
         }
       )
       .subscribe();
@@ -77,7 +98,7 @@ export function EventFeed({ leagueId, initialEvents, currentUserId }: EventFeedP
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [leagueId]);
+  }, [leagueId, memberNames, gameNames, filterGameId]);
 
   if (events.length === 0) {
     return (

@@ -13,7 +13,7 @@ export function GameTabs({ games, activeId, onChange }: GameTabsProps) {
   if (games.length === 0) {
     return (
       <p className="text-sm text-zinc-500">
-        Добавьте игры в разделе «Игры»
+        Добавьте игру на Арене
       </p>
     );
   }

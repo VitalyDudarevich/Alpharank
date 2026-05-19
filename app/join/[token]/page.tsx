@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { joinLeague } from "@/lib/actions/league";
+import { getProfileDisplayName } from "@/lib/profile";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 
 export default async function JoinPage({
@@ -48,6 +48,11 @@ export default async function JoinPage({
     redirect(`/league/${league.id}`);
   }
 
+  const profileName = await getProfileDisplayName(supabase, user.id);
+  if (!profileName) {
+    redirect(`/profile?redirect=/join/${token}`);
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4">
       <Card>
@@ -56,12 +61,12 @@ export default async function JoinPage({
           Лига: <span className="text-zinc-100">{league.name}</span>
           {league.year && ` (${league.year})`}
         </p>
+        <p className="mb-4 text-sm text-zinc-400">
+          Вы вступите как{" "}
+          <span className="font-medium text-zinc-100">{profileName}</span>
+        </p>
         <form action={joinLeague} className="space-y-4">
           <input type="hidden" name="token" value={token} />
-          <div>
-            <label className="mb-1 block text-sm text-zinc-400">Ваше имя</label>
-            <Input name="display_name" placeholder="Как вас зовут?" required />
-          </div>
           <Button type="submit" className="w-full">
             Вступить
           </Button>

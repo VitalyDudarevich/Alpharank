@@ -1,12 +1,17 @@
 import { Suspense } from "react";
+import { AuthLayout } from "@/components/login/auth-layout";
 import { LoginForm } from "./login-form";
 
 export default function LoginPage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4">
-      <Suspense fallback={<p className="text-zinc-400">Загрузка...</p>}>
+    <AuthLayout>
+      <Suspense
+        fallback={
+          <p className="animate-pulse text-sm text-violet-300/50">Загрузка...</p>
+        }
+      >
         <LoginForm />
       </Suspense>
-    </main>
+    </AuthLayout>
   );
 }

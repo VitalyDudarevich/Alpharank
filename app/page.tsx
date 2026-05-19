@@ -5,8 +5,15 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { signOut } from "@/lib/actions/auth";
+import { getProfile } from "@/lib/profile";
+import { HomeLeaguesList } from "@/components/home/home-leagues-list";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ highlight?: string }>;
+}) {
+  const { highlight } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,10 +34,16 @@ export default async function HomePage() {
     );
   }
 
-  const { data: memberships } = await supabase
+  const profile = await getProfile(supabase, user.id);
+
+  const { data: memberships, error: membershipsError } = await supabase
     .from("league_members")
     .select("league_id, display_name, leagues(id, name, year)")
     .eq("user_id", user.id);
+
+  if (membershipsError) {
+    console.error("load leagues:", membershipsError.message);
+  }
 
   const leagues =
     memberships
@@ -49,7 +62,12 @@ export default async function HomePage() {
       <header className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Мои лиги</h1>
-          <p className="text-sm text-zinc-400">{user.email}</p>
+          <Link
+            href="/profile"
+            className="text-sm text-violet-400 hover:text-violet-300"
+          >
+            {profile?.display_name ?? "Заполнить профиль"}
+          </Link>
         </div>
         <Link href="/league/new">
           <Button size="sm">
@@ -59,6 +77,12 @@ export default async function HomePage() {
         </Link>
       </header>
 
+      {membershipsError && (
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-950/30 px-4 py-3 text-sm text-amber-200">
+          Не удалось загрузить лиги. Выполните миграции в Supabase (папка supabase/migrations).
+        </div>
+      )}
+
       {leagues.length === 0 ? (
         <Card className="text-center">
           <p className="mb-4 text-zinc-400">Пока нет лиг</p>
@@ -67,23 +91,14 @@ export default async function HomePage() {
           </Link>
         </Card>
       ) : (
-        <ul className="space-y-3">
-          {leagues.map((league) => (
-            <li key={league!.id}>
-              <Link href={`/league/${league!.id}`}>
-                <Card className="flex items-center justify-between transition-colors hover:border-violet-600/50">
-                  <div>
-                    <p className="font-semibold">{league!.name}</p>
-                    {league!.year && (
-                      <p className="text-sm text-zinc-500">{league!.year}</p>
-                    )}
-                  </div>
-                  <Trophy className="h-5 w-5 text-violet-400" />
-                </Card>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <HomeLeaguesList
+          leagues={leagues.map((league) => ({
+            id: league!.id,
+            name: league!.name,
+            year: league!.year ?? null,
+          }))}
+          highlightLeagueId={highlight}
+        />
       )}
 
       <form action={signOut} className="mt-8">

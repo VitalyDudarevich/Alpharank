@@ -11,19 +11,25 @@ interface QuickWinGridProps {
   leagueId: string;
   sessionId: string;
   gameId: string;
+  gameName: string;
   participants: LeagueMember[];
   winCounts: Record<string, number>;
+  eloEnabled: boolean;
+  eloK: number;
 }
 
 export function QuickWinGrid({
   leagueId,
   sessionId,
   gameId,
+  gameName,
   participants,
-  winCounts,
+  winCounts: initialCounts,
+  eloEnabled,
+  eloK,
 }: QuickWinGridProps) {
   const [pending, startTransition] = useTransition();
-  const [localCounts, setLocalCounts] = useState(winCounts);
+  const [localCounts, setLocalCounts] = useState(initialCounts);
   const participantIds = participants.map((p) => p.id);
 
   const handleWin = (memberId: string, displayName: string) => {
@@ -44,21 +50,29 @@ export function QuickWinGrid({
         gameId,
         winnerMemberId: memberId,
         participantIds,
+        winnerDisplayName: displayName,
+        gameName,
+        eloEnabled,
+        eloK,
       });
 
       if (result.error) {
-        setLocalCounts(winCounts);
+        setLocalCounts((prev) => ({
+          ...prev,
+          [memberId]: Math.max(0, (prev[memberId] ?? 1) - 1),
+        }));
         toast.error(result.error);
         return;
       }
 
       if (result.eventId) {
+        const eventId = result.eventId;
         toast.success(`+1 ${displayName}`, {
           action: {
             label: "Отменить",
             onClick: () => {
               startTransition(async () => {
-                const undo = await undoWin(leagueId, result.eventId!);
+                const undo = await undoWin(leagueId, eventId);
                 if (undo.error) toast.error(undo.error);
                 else {
                   setLocalCounts((prev) => ({
@@ -94,7 +108,7 @@ export function QuickWinGrid({
           type="button"
           disabled={pending}
           onClick={() => handleWin(member.id, member.display_name)}
-          className="group flex flex-col items-center gap-2 rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900 to-zinc-950 p-4 transition-all active:scale-[0.97] hover:border-emerald-600/50 hover:shadow-lg hover:shadow-emerald-600/10 disabled:opacity-60"
+          className="group flex flex-col items-center gap-2 rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900 to-zinc-950 p-4 transition-transform active:scale-[0.97] hover:border-emerald-600/50 disabled:opacity-60"
         >
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600/20 text-2xl font-bold text-emerald-400 group-active:bg-emerald-600 group-active:text-white">
             +1

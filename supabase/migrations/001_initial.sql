@@ -124,9 +124,9 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE elo_ratings ENABLE ROW LEVEL SECURITY;
 
 -- Leagues policies
-CREATE POLICY "Members can view their leagues"
+CREATE POLICY "Members and creators can view leagues"
   ON leagues FOR SELECT
-  USING (is_league_member(id));
+  USING (is_league_member(id) OR created_by = auth.uid());
 
 CREATE POLICY "Users can create leagues"
   ON leagues FOR INSERT
@@ -197,7 +197,14 @@ CREATE POLICY "Members can view audit logs"
   ON audit_logs FOR SELECT USING (is_league_member(league_id));
 
 CREATE POLICY "Members can insert audit logs"
-  ON audit_logs FOR INSERT WITH CHECK (is_league_member(league_id));
+  ON audit_logs FOR INSERT
+  WITH CHECK (
+    is_league_member(league_id)
+    OR EXISTS (
+      SELECT 1 FROM leagues l
+      WHERE l.id = league_id AND l.created_by = auth.uid()
+    )
+  );
 
 -- ELO ratings
 CREATE POLICY "Members can view elo"

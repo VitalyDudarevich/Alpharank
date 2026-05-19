@@ -26,3 +26,33 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Светлый календарь у type="date", поле остаётся тёмным */
+.date-input,
+input[type="date"].date-input {
+  color-scheme: light;
+}
+
+.date-input::-webkit-calendar-picker-indicator,
+input[type="date"].date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.9;
+  filter: invert(1);
+}
+
+/* Поля на странице входа — тёмный фон, без белого autofill */
+.auth-field {
+  color-scheme: dark;
+}
+
+.auth-field:-webkit-autofill,
+.auth-field:-webkit-autofill:hover,
+.auth-field:-webkit-autofill:focus,
+.auth-field:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #0a0814 inset !important;
+  box-shadow: 0 0 0 1000px #0a0814 inset !important;
+  -webkit-text-fill-color: #e2e8f0 !important;
+  caret-color: #e2e8f0;
+  border-color: rgb(71 85 105 / 0.5) !important;
+  transition: background-color 9999s ease-out 0s;
+}

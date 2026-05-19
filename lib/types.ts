@@ -1,5 +1,13 @@
 export type MemberRole = "owner" | "member";
 
+export interface Profile {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface League {
   id: string;
   name: string;
@@ -9,6 +17,9 @@ export interface League {
   invite_token: string;
   created_by: string;
   created_at: string;
+  ends_at: string | null;
+  target_wins: number | null;
+  concluded_at: string | null;
 }
 
 export interface LeagueMember {
@@ -26,13 +37,21 @@ export interface Game {
   name: string;
   sort_order: number;
   created_at: string;
+  target_wins: number | null;
+  ends_at: string | null;
 }
+
+export type SessionStatus = "active" | "ended";
 
 export interface Session {
   id: string;
   league_id: string;
   session_date: string;
   note: string | null;
+  game_id?: string | null;
+  status?: SessionStatus;
+  started_at?: string | null;
+  ended_at?: string | null;
   created_at: string;
 }
 

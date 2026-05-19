@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { updateMultiplayerElo, DEFAULT_RATING } from "@/lib/elo";
+import { assertCanRecordWin, maybeAutoConcludeLeague } from "@/lib/actions/season";
 
 export async function addWin(params: {
   leagueId: string;
@@ -10,6 +11,10 @@ export async function addWin(params: {
   gameId: string;
   winnerMemberId: string;
   participantIds: string[];
+  winnerDisplayName: string;
+  gameName: string;
+  eloEnabled?: boolean;
+  eloK?: number;
 }) {
   const supabase = await createClient();
   const {
@@ -17,11 +22,24 @@ export async function addWin(params: {
   } = await supabase.auth.getUser();
   if (!user) return { error: "Не авторизован" };
 
-  const { leagueId, sessionId, gameId, winnerMemberId, participantIds } = params;
+  const {
+    leagueId,
+    sessionId,
+    gameId,
+    winnerMemberId,
+    participantIds,
+    winnerDisplayName,
+    gameName,
+    eloEnabled = false,
+    eloK = 32,
+  } = params;
 
   if (!participantIds.includes(winnerMemberId)) {
     return { error: "Победитель должен быть среди участников" };
   }
+
+  const canRecord = await assertCanRecordWin(leagueId, gameId);
+  if (canRecord.error) return { error: canRecord.error };
 
   const { data: event, error } = await supabase
     .from("score_events")
@@ -33,53 +51,36 @@ export async function addWin(params: {
       participant_ids: participantIds,
       created_by: user.id,
     })
-    .select()
+    .select("id")
     .single();
 
   if (error || !event) return { error: error?.message ?? "Ошибка записи" };
 
-  const { data: member } = await supabase
-    .from("league_members")
-    .select("display_name")
-    .eq("id", winnerMemberId)
-    .single();
-
-  await supabase.from("audit_logs").insert({
-    league_id: leagueId,
-    action: "win_added",
-    payload: {
-      event_id: event.id,
-      winner: member?.display_name,
-      game_id: gameId,
-      participants: participantIds,
-    },
-    actor_id: user.id,
+  // Тяжёлую работу — после ответа клиенту (не блокирует UI)
+  after(async () => {
+    const bg = await createClient();
+    await maybeAutoConcludeLeague(leagueId);
+    await bg.from("audit_logs").insert({
+      league_id: leagueId,
+      action: "win_added",
+      payload: {
+        event_id: event.id,
+        winner: winnerDisplayName,
+        game: gameName,
+        participants: participantIds,
+      },
+      actor_id: user.id,
+    });
+    if (eloEnabled) {
+      await updateEloRatings(bg, gameId, participantIds, winnerMemberId, eloK);
+    }
   });
 
-  const { data: league } = await supabase
-    .from("leagues")
-    .select("elo_enabled, elo_k")
-    .eq("id", leagueId)
-    .single();
-
-  if (league?.elo_enabled) {
-    await updateEloRatings(
-      supabase,
-      leagueId,
-      gameId,
-      participantIds,
-      winnerMemberId,
-      league.elo_k
-    );
-  }
-
-  revalidatePath(`/league/${leagueId}`);
   return { success: true, eventId: event.id };
 }
 
 async function updateEloRatings(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  leagueId: string,
   gameId: string,
   participantIds: string[],
   winnerId: string,
@@ -100,56 +101,52 @@ async function updateEloRatings(
       ratingMap.set(id, found ? Number(found.rating) : DEFAULT_RATING);
     });
 
-    const ratings = participantIds.map((id) => ({
-      memberId: id,
-      rating: ratingMap.get(id)!,
-    }));
+    const updated = updateMultiplayerElo(
+      participantIds.map((id) => ({ memberId: id, rating: ratingMap.get(id)! })),
+      winnerId,
+      k
+    );
 
-    const updated = updateMultiplayerElo(ratings, winnerId, k);
-
-    for (const u of updated) {
-      if (scopeGameId === null) {
-        const { data: row } = await supabase
-          .from("elo_ratings")
-          .select("id")
-          .eq("member_id", u.memberId)
-          .is("game_id", null)
-          .maybeSingle();
-
-        if (row) {
-          await supabase
+    await Promise.all(
+      updated.map(async (u) => {
+        if (scopeGameId === null) {
+          const { data: row } = await supabase
             .from("elo_ratings")
-            .update({ rating: u.rating, updated_at: new Date().toISOString() })
-            .eq("id", row.id);
-        } else {
-          await supabase.from("elo_ratings").insert({
+            .select("id")
+            .eq("member_id", u.memberId)
+            .is("game_id", null)
+            .maybeSingle();
+          if (row) {
+            return supabase
+              .from("elo_ratings")
+              .update({ rating: u.rating, updated_at: new Date().toISOString() })
+              .eq("id", row.id);
+          }
+          return supabase.from("elo_ratings").insert({
             member_id: u.memberId,
             game_id: null,
             rating: u.rating,
           });
         }
-      } else {
         const { data: row } = await supabase
           .from("elo_ratings")
           .select("id")
           .eq("member_id", u.memberId)
           .eq("game_id", scopeGameId)
           .maybeSingle();
-
         if (row) {
-          await supabase
+          return supabase
             .from("elo_ratings")
             .update({ rating: u.rating, updated_at: new Date().toISOString() })
             .eq("id", row.id);
-        } else {
-          await supabase.from("elo_ratings").insert({
-            member_id: u.memberId,
-            game_id: scopeGameId,
-            rating: u.rating,
-          });
         }
-      }
-    }
+        return supabase.from("elo_ratings").insert({
+          member_id: u.memberId,
+          game_id: scopeGameId,
+          rating: u.rating,
+        });
+      })
+    );
   }
 }
 
@@ -162,27 +159,26 @@ export async function undoWin(leagueId: string, eventId: string) {
 
   const { data: event } = await supabase
     .from("score_events")
-    .select("*")
+    .select("created_by, created_at")
     .eq("id", eventId)
     .single();
 
   if (!event) return { error: "Событие не найдено" };
 
-  const createdAt = new Date(event.created_at).getTime();
-  const fiveMin = 5 * 60 * 1000;
   const isAuthor = event.created_by === user.id;
+  const within5Min = Date.now() - new Date(event.created_at).getTime() < 5 * 60 * 1000;
 
-  const { data: member } = await supabase
-    .from("league_members")
-    .select("role")
-    .eq("league_id", leagueId)
-    .eq("user_id", user.id)
-    .single();
-
-  const isOwner = member?.role === "owner";
-  const canUndo = isOwner || (isAuthor && Date.now() - createdAt < fiveMin);
-
-  if (!canUndo) return { error: "Нельзя отменить это действие" };
+  if (!isAuthor && !within5Min) {
+    const { data: member } = await supabase
+      .from("league_members")
+      .select("role")
+      .eq("league_id", leagueId)
+      .eq("user_id", user.id)
+      .single();
+    if (member?.role !== "owner") {
+      return { error: "Нельзя отменить это действие" };
+    }
+  }
 
   const { error } = await supabase
     .from("score_events")
@@ -191,14 +187,16 @@ export async function undoWin(leagueId: string, eventId: string) {
 
   if (error) return { error: error.message };
 
-  await supabase.from("audit_logs").insert({
-    league_id: leagueId,
-    action: "win_undone",
-    payload: { event_id: eventId },
-    actor_id: user.id,
+  after(async () => {
+    const bg = await createClient();
+    await bg.from("audit_logs").insert({
+      league_id: leagueId,
+      action: "win_undone",
+      payload: { event_id: eventId },
+      actor_id: user.id,
+    });
   });
 
-  revalidatePath(`/league/${leagueId}`);
   return { success: true };
 }
 
@@ -222,14 +220,16 @@ export async function updateSessionParticipants(
     if (error) return { error: error.message };
   }
 
-  await supabase.from("audit_logs").insert({
-    league_id: leagueId,
-    action: "participants_updated",
-    payload: { session_id: sessionId, member_ids: memberIds },
-    actor_id: user.id,
+  after(async () => {
+    const bg = await createClient();
+    await bg.from("audit_logs").insert({
+      league_id: leagueId,
+      action: "participants_updated",
+      payload: { session_id: sessionId, member_ids: memberIds },
+      actor_id: user.id,
+    });
   });
 
-  revalidatePath(`/league/${leagueId}/today`);
   return { success: true };
 }
 
