@@ -1,11 +1,16 @@
 export interface SessionScoreEvent {
   id: string;
-  winner_member_id: string;
+  winner_member_id: string | null;
+  winner_participant_id?: string | null;
   participant_ids: string[];
-  game_id: string;
+  game_id: string | null;
   created_at: string;
   created_by: string;
   deleted_at: string | null;
+}
+
+export function eventWinnerId(event: SessionScoreEvent): string {
+  return event.winner_member_id ?? event.winner_participant_id ?? "";
 }
 
 export interface PlayerSessionStat {
@@ -36,7 +41,7 @@ export function computePlayerTimelines(
     );
 
   for (const event of activeEvents) {
-    const winnerId = event.winner_member_id;
+    const winnerId = eventWinnerId(event);
     for (const pid of event.participant_ids) {
       if (!timelines[pid]) timelines[pid] = [{ games: 0, wins: 0 }];
       const last = timelines[pid][timelines[pid].length - 1];
@@ -65,8 +70,9 @@ export function computeSessionPlayerStats(
       if (!stats[pid]) stats[pid] = { wins: 0, games: 0 };
       stats[pid].games += 1;
     }
-    if (stats[event.winner_member_id]) {
-      stats[event.winner_member_id].wins += 1;
+    const winnerId = eventWinnerId(event);
+    if (stats[winnerId]) {
+      stats[winnerId].wins += 1;
     }
   }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { Gamepad2, Shield, Users, X } from "lucide-react";
 import { toast } from "sonner";
@@ -210,7 +211,7 @@ export function BattleSetupDialog({
           </section>
         </div>
 
-        <div className="shrink-0 border-t border-zinc-800 p-4">
+        <div className="shrink-0 space-y-3 border-t border-zinc-800 p-4">
           <Button
             type="button"
             className="h-12 w-full text-base font-semibold"
@@ -219,6 +220,15 @@ export function BattleSetupDialog({
           >
             {pending ? "Запуск…" : "Начать сражение!"}
           </Button>
+          <p className="text-center text-xs text-zinc-500">
+            <Link
+              href="/arena"
+              className="text-violet-400 hover:text-violet-300"
+              onClick={onClose}
+            >
+              Сражение без лиги →
+            </Link>
+          </p>
         </div>
       </div>
     </div>

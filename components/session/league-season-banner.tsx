@@ -57,7 +57,7 @@ export function LeagueSeasonBanner({
               Новые результаты не принимаются. Места по сумме побед.
             </p>
             <Link
-              href={`/league/${league.id}/league`}
+              href={`/league/${league.id}`}
               className="mt-2 inline-block text-sm text-violet-400 hover:text-violet-300"
             >
               Редактировать и продолжить →

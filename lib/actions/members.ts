@@ -100,7 +100,6 @@ export async function addKnownMemberToLeague(leagueId: string, userId: string) {
   });
 
   revalidatePath(`/league/${leagueId}`);
-  revalidatePath(`/league/${leagueId}/league`);
   revalidatePath(`/league/${leagueId}/members`);
 
   return {

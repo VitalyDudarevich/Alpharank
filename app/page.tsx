@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { Trophy, Plus } from "lucide-react";
+import { Plus, Swords } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { signOut } from "@/lib/actions/auth";
 import { getProfile } from "@/lib/profile";
 import { HomeLeaguesList } from "@/components/home/home-leagues-list";
 
@@ -20,18 +19,7 @@ export default async function HomePage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-4">
-        <Trophy className="mb-4 h-12 w-12 text-violet-400" />
-        <h1 className="text-3xl font-bold">alphaRank</h1>
-        <p className="mt-2 mb-8 text-center text-zinc-400">
-          Быстрый учёт побед с друзьями
-        </p>
-        <Link href="/login">
-          <Button size="lg">Войти</Button>
-        </Link>
-      </main>
-    );
+    redirect("/login");
   }
 
   const profile = await getProfile(supabase, user.id);
@@ -58,7 +46,20 @@ export default async function HomePage({
       .filter(Boolean) ?? [];
 
   return (
-    <main className="mx-auto min-h-screen max-w-lg px-4 pb-8 pt-8">
+    <main className="mx-auto min-h-screen max-w-lg px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pl-12 pt-8 md:max-w-2xl md:pb-28">
+      <Link
+        href="/arena"
+        className="mb-6 flex items-center gap-3 rounded-2xl border border-violet-500/30 bg-violet-600/10 px-4 py-4 transition-colors hover:border-violet-500/50 hover:bg-violet-600/15"
+      >
+        <Swords className="h-8 w-8 shrink-0 text-violet-400" />
+        <div className="min-w-0 text-left">
+          <p className="font-semibold text-violet-100">Быстрое сражение</p>
+          <p className="text-sm text-zinc-500">
+            Без лиги — игра и участники на лету
+          </p>
+        </div>
+      </Link>
+
       <header className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Мои лиги</h1>
@@ -101,14 +102,6 @@ export default async function HomePage({
         />
       )}
 
-      <form action={signOut} className="mt-8">
-        <button
-          type="submit"
-          className="text-sm text-zinc-500 hover:text-zinc-300"
-        >
-          Выйти
-        </button>
-      </form>
     </main>
   );
 }

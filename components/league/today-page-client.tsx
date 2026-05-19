@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Swords } from "lucide-react";
+import { Swords } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useLeague } from "@/lib/league-context";
 import { fetchArenaState, type ArenaHistoryItem } from "@/lib/actions/arena";
@@ -194,19 +194,7 @@ export function TodayPageClient() {
           )}
         </div>
         <h1 className="truncate text-center text-xl font-bold">{league.name}</h1>
-        <div className="flex justify-end">
-          {view === "idle" && (
-            <Button
-              type="button"
-              size="sm"
-              className="shrink-0"
-              onClick={() => setSetupOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              Сражение
-            </Button>
-          )}
-        </div>
+        <div aria-hidden className="w-[4.5rem]" />
       </header>
 
       {view === "active" && activeGame && sessionId && (

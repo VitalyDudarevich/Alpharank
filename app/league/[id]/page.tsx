@@ -1,5 +1,5 @@
-import { DashboardPageClient } from "@/components/league/dashboard-page-client";
+import { LeagueHomePageClient } from "@/components/league/league-home-page-client";
 
-export default function LeagueDashboardPage() {
-  return <DashboardPageClient />;
+export default function LeagueHomePage() {
+  return <LeagueHomePageClient />;
 }

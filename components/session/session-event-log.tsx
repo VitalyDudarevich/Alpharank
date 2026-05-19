@@ -20,9 +20,9 @@ export type SessionLogEvent = {
 };
 
 type SessionEventLogProps = {
-  leagueId: string;
+  leagueId: string | null;
   sessionId: string;
-  gameId: string;
+  gameId: string | null;
   initialEvents: SessionLogEvent[];
   memberNames: Record<string, string>;
   actorNames: Record<string, string>;
@@ -75,7 +75,9 @@ export function SessionEventLog({
         (payload) => {
           if (payload.eventType === "INSERT" && payload.new) {
             const row = payload.new as SessionScoreEvent;
-            if (row.deleted_at || row.game_id !== gameId) return;
+            if (row.deleted_at) return;
+            if (gameId !== null && row.game_id !== gameId) return;
+            if (gameId === null && row.game_id !== null) return;
             setEvents((prev) => {
               if (prev.some((e) => e.id === row.id)) return prev;
               const actor =
@@ -85,8 +87,18 @@ export function SessionEventLog({
               return [
                 {
                   id: row.id,
-                  winner_member_id: row.winner_member_id,
-                  winner_name: memberNames[row.winner_member_id] ?? "?",
+                  winner_member_id:
+                    row.winner_member_id ??
+                    (row as { winner_participant_id?: string })
+                      .winner_participant_id ??
+                    "",
+                  winner_name:
+                    memberNames[
+                      row.winner_member_id ??
+                        (row as { winner_participant_id?: string })
+                          .winner_participant_id ??
+                        ""
+                    ] ?? "?",
                   actor_name: actor,
                   created_by: row.created_by,
                   created_at: row.created_at,

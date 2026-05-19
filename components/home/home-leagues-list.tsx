@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Trophy } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { writeLastLeagueId } from "@/lib/last-league";
 
 export type HomeLeagueItem = {
   id: string;
@@ -52,7 +53,10 @@ export function HomeLeaguesList({
         const highlighted = activeHighlight === league.id;
         return (
           <li key={league.id}>
-            <Link href={`/league/${league.id}`}>
+            <Link
+              href={`/league/${league.id}`}
+              onClick={() => writeLastLeagueId(league.id)}
+            >
               <Card
                 className={cn(
                   "flex items-center justify-between transition-all duration-1000 ease-out",

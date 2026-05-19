@@ -45,13 +45,23 @@ export type SessionStatus = "active" | "ended";
 
 export interface Session {
   id: string;
-  league_id: string;
+  league_id: string | null;
   session_date: string;
   note: string | null;
   game_id?: string | null;
+  game_name?: string | null;
+  created_by?: string | null;
   status?: SessionStatus;
   started_at?: string | null;
   ended_at?: string | null;
+  created_at: string;
+}
+
+export interface BattleParticipant {
+  id: string;
+  session_id: string;
+  display_name: string;
+  user_id: string | null;
   created_at: string;
 }
 

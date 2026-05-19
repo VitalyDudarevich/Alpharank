@@ -1,4 +1,3 @@
-import { LeagueNav } from "@/components/layout/league-nav";
 import { LeagueProvider } from "@/lib/league-context";
 import { getLeagueContext } from "@/lib/league-data";
 
@@ -24,10 +23,9 @@ export default async function LeagueLayout({
         userId: user.id,
       }}
     >
-      <div className="mx-auto min-h-screen w-full max-w-lg pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:max-w-2xl md:pb-28">
+      <div className="mx-auto min-h-screen w-full max-w-lg pb-[calc(4.75rem+env(safe-area-inset-bottom))] pl-12 md:max-w-2xl md:pb-28">
         {children}
       </div>
-      <LeagueNav leagueId={id} />
     </LeagueProvider>
   );
 }

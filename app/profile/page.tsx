@@ -22,7 +22,7 @@ export default async function ProfilePage({
   const backHref = redirectTo && redirectTo.startsWith("/") ? redirectTo : "/";
 
   return (
-    <main className="mx-auto min-h-screen max-w-lg px-4 py-8">
+    <main className="mx-auto min-h-screen max-w-lg px-4 py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] pl-12 md:max-w-2xl md:pb-28">
       <Link
         href={backHref}
         className="mb-6 inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-200"

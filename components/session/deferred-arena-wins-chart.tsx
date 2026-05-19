@@ -11,7 +11,7 @@ type DeferredArenaWinsChartProps = {
   events: SessionScoreEvent[];
   memberNames: Record<string, string>;
   memberIds: string[];
-  gameId: string;
+  gameId: string | null;
 };
 
 export const DeferredArenaWinsChart = memo(function DeferredArenaWinsChart({

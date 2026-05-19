@@ -150,7 +150,73 @@ async function updateEloRatings(
   }
 }
 
-export async function undoWin(leagueId: string, eventId: string) {
+export async function addStandaloneWin(params: {
+  sessionId: string;
+  winnerParticipantId: string;
+  participantIds: string[];
+  winnerDisplayName: string;
+  gameName: string;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Не авторизован" };
+
+  const {
+    sessionId,
+    winnerParticipantId,
+    participantIds,
+    winnerDisplayName,
+    gameName,
+  } = params;
+
+  if (!participantIds.includes(winnerParticipantId)) {
+    return { error: "Победитель должен быть среди участников" };
+  }
+
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("id, status, created_by")
+    .eq("id", sessionId)
+    .is("league_id", null)
+    .single();
+
+  if (!session || session.created_by !== user.id) {
+    return { error: "Сражение не найдено" };
+  }
+  if (session.status !== "active") {
+    return { error: "Сражение завершено" };
+  }
+
+  const { data: event, error } = await supabase
+    .from("score_events")
+    .insert({
+      league_id: null,
+      session_id: sessionId,
+      game_id: null,
+      winner_member_id: null,
+      winner_participant_id: winnerParticipantId,
+      participant_ids: participantIds,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (error || !event) return { error: error?.message ?? "Ошибка записи" };
+
+  after(async () => {
+    console.info("standalone win", {
+      event_id: event.id,
+      winner: winnerDisplayName,
+      game: gameName,
+    });
+  });
+
+  return { success: true, eventId: event.id };
+}
+
+export async function undoWin(leagueId: string | null, eventId: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -169,6 +235,9 @@ export async function undoWin(leagueId: string, eventId: string) {
   const within5Min = Date.now() - new Date(event.created_at).getTime() < 5 * 60 * 1000;
 
   if (!isAuthor && !within5Min) {
+    if (!leagueId) {
+      return { error: "Нельзя отменить это действие" };
+    }
     const { data: member } = await supabase
       .from("league_members")
       .select("role")
@@ -188,6 +257,7 @@ export async function undoWin(leagueId: string, eventId: string) {
   if (error) return { error: error.message };
 
   after(async () => {
+    if (!leagueId) return;
     const bg = await createClient();
     await bg.from("audit_logs").insert({
       league_id: leagueId,

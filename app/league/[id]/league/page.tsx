@@ -1,5 +1,10 @@
-import { LeaguePageClient } from "@/components/league/league-page-client";
+import { redirect } from "next/navigation";
 
-export default function LeagueTabPage() {
-  return <LeaguePageClient />;
+export default async function LeagueTabRedirectPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  redirect(`/league/${id}`);
 }

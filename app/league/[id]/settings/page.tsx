@@ -6,5 +6,5 @@ export default async function SettingsRedirectPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  redirect(`/league/${id}/league`);
+  redirect(`/league/${id}`);
 }

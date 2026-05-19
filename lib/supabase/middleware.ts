@@ -42,10 +42,12 @@ export async function updateSession(request: NextRequest) {
     isAuthPage ||
     request.nextUrl.pathname.startsWith("/join");
 
-  if (!user && !isPublic && request.nextUrl.pathname !== "/") {
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("redirect", request.nextUrl.pathname);
+    if (request.nextUrl.pathname !== "/") {
+      url.searchParams.set("redirect", request.nextUrl.pathname);
+    }
     return NextResponse.redirect(url);
   }
 
