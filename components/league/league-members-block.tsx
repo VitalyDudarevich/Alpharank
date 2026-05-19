@@ -30,6 +30,10 @@ type LeagueMembersBlockProps = {
   onMemberAdded?: (member: LeagueMemberListItem) => void;
   addDisabled?: boolean;
   pending?: boolean;
+  /** Не показывать кнопку «Добавить» внутри блока (кнопка снаружи, внизу страницы). */
+  hideAddButton?: boolean;
+  pickerOpen?: boolean;
+  onPickerOpenChange?: (open: boolean) => void;
 };
 
 export function LeagueMembersBlock({
@@ -41,8 +45,13 @@ export function LeagueMembersBlock({
   onMemberAdded,
   addDisabled = false,
   pending = false,
+  hideAddButton = false,
+  pickerOpen: pickerOpenProp,
+  onPickerOpenChange,
 }: LeagueMembersBlockProps) {
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerOpenInternal, setPickerOpenInternal] = useState(false);
+  const pickerOpen = pickerOpenProp ?? pickerOpenInternal;
+  const setPickerOpen = onPickerOpenChange ?? setPickerOpenInternal;
   const [query, setQuery] = useState("");
   const [catalog, setCatalog] = useState<CatalogPersonItem[]>([]);
   const [listOpen, setListOpen] = useState(false);
@@ -146,7 +155,7 @@ export function LeagueMembersBlock({
         </ul>
       </div>
 
-      {allowAdd && !pickerOpen && (
+      {allowAdd && !hideAddButton && !pickerOpen && (
         <Button
           type="button"
           variant="outline"
@@ -155,7 +164,7 @@ export function LeagueMembersBlock({
           onClick={() => setPickerOpen(true)}
         >
           <Plus className="mr-2 h-4 w-4" />
-          Добавить участников
+          Добавить участника
         </Button>
       )}
 

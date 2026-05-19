@@ -224,7 +224,7 @@ export async function joinLeague(formData: FormData) {
     .maybeSingle();
 
   if (existing) {
-    redirect(`/league/${league.id}`);
+    redirect(`/league/${league.id}/today`);
   }
 
   const { error } = await supabase.from("league_members").insert({
@@ -243,7 +243,7 @@ export async function joinLeague(formData: FormData) {
     actor_id: user.id,
   });
 
-  redirect(`/league/${league.id}`);
+  redirect(`/league/${league.id}/today`);
 }
 
 export async function updateLeagueName(leagueId: string, name: string) {

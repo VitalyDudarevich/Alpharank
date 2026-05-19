@@ -38,7 +38,7 @@ export function DeleteLeagueDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-end justify-center p-4 sm:items-center"
+      className="fixed inset-0 z-[10000] flex items-end justify-center p-4 sm:items-center sm:p-8"
       role="dialog"
       aria-modal="true"
       aria-labelledby="delete-league-title"
@@ -57,7 +57,7 @@ export function DeleteLeagueDialog({
           "bg-zinc-900 shadow-2xl shadow-black/50"
         )}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-zinc-800 px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-zinc-800 px-6 py-4 sm:px-10">
           <div className="flex items-start gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-400">
               <AlertTriangle className="h-5 w-5" strokeWidth={2} />
@@ -85,7 +85,7 @@ export function DeleteLeagueDialog({
           </button>
         </div>
 
-        <div className="space-y-3 px-5 py-4">
+        <div className="space-y-3 px-6 py-4 sm:px-10">
           <p className="text-sm leading-relaxed text-zinc-300">
             Лига{" "}
             <span className="font-semibold text-zinc-100">«{leagueName}»</span>{" "}
@@ -98,7 +98,7 @@ export function DeleteLeagueDialog({
           </ul>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 border-t border-zinc-800 bg-zinc-950/50 p-4">
+        <div className="grid grid-cols-2 gap-2 border-t border-zinc-800 bg-zinc-950/50 p-6 sm:p-8">
           <Button
             type="button"
             variant="outline"

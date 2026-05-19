@@ -57,13 +57,13 @@ export function AvatarCropDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-4 sm:items-center sm:p-8"
       role="dialog"
       aria-modal="true"
       aria-labelledby="avatar-crop-title"
     >
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900 shadow-xl">
-        <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-zinc-800 px-6 py-3 sm:px-8">
           <h2 id="avatar-crop-title" className="font-semibold text-zinc-100">
             Настройка фото
           </h2>
@@ -92,7 +92,7 @@ export function AvatarCropDialog({
           />
         </div>
 
-        <div className="space-y-4 border-t border-zinc-800 px-4 py-4">
+        <div className="space-y-4 border-t border-zinc-800 px-6 py-4 sm:px-8">
           <div>
             <div className="mb-2 flex items-center justify-between text-xs text-zinc-500">
               <span>Масштаб</span>

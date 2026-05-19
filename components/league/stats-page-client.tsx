@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useLeague } from "@/lib/league-context";
 import { StatsClient } from "@/components/stats/stats-client";
 import type { ScoreEvent } from "@/lib/types";
+import { AppPageHeader } from "@/components/layout/app-page-header";
+import { appMainClass } from "@/lib/layout-page";
 
 export function StatsPageClient() {
   const { leagueId, league, members, games } = useLeague();
@@ -67,11 +69,8 @@ export function StatsPageClient() {
   }, [leagueId]);
 
   return (
-    <main className="px-4 pt-6">
-      <header className="mb-6">
-        <h1 className="text-xl font-bold">Статистика</h1>
-        <p className="text-sm text-zinc-400">1 победа = 1 очко</p>
-      </header>
+    <main className={appMainClass}>
+      <AppPageHeader title="Статистика" />
 
       {loading ? (
         <p className="text-sm text-zinc-500">Загрузка…</p>

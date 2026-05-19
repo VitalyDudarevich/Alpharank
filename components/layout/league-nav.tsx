@@ -7,7 +7,6 @@ import {
   BarChart3,
   Users,
   Home,
-  UserCircle,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,13 +16,15 @@ type NavLinkItem = {
   label: string;
   icon: LucideIcon;
   primary?: boolean;
+  /** Абсолютный путь, не относительно лиги */
+  absolute?: boolean;
 };
 
 const leagueNavLinks: NavLinkItem[] = [
   { href: "today", label: "Арена", icon: Swords, primary: true },
-  { href: "", label: "Главная", icon: Home },
-  { href: "stats", label: "Стат", icon: BarChart3 },
-  { href: "members", label: "Люди", icon: Users },
+  { href: "stats", label: "Статы", icon: BarChart3 },
+  { href: "members", label: "Участники", icon: Users },
+  { href: "/", label: "Лиги", icon: Home, absolute: true },
 ];
 
 function navItemClass(active: boolean, primary: boolean) {
@@ -41,25 +42,20 @@ export function LeagueNav({ leagueId }: { leagueId: string }) {
   const pathname = usePathname();
   const base = `/league/${leagueId}`;
 
-  const linkPath = (link: NavLinkItem) => {
-    if (!link.href) return base;
-    return `${base}/${link.href}`;
-  };
+  const linkPath = (link: NavLinkItem) =>
+    link.absolute ? link.href : `${base}/${link.href}`;
 
   const isActive = (link: NavLinkItem) => {
-    const path = linkPath(link);
-    if (link.href === "") {
-      return pathname === base || pathname === "/";
+    if (link.absolute) return pathname === "/";
+    if (link.href === "today") {
+      return pathname === base || pathname.startsWith(`${base}/today`);
     }
-    return pathname.startsWith(path);
+    return pathname.startsWith(linkPath(link));
   };
-
-  const profileActive =
-    pathname === "/profile" || pathname.startsWith("/profile/");
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-700/90 bg-zinc-950/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:bottom-0 sm:left-1/2 sm:right-auto sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:border sm:rounded-t-2xl sm:px-3 sm:pb-[max(12px,env(safe-area-inset-bottom))] md:max-w-2xl"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-zinc-700/90 bg-zinc-950/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_40px_rgba(0,0,0,0.55)] backdrop-blur-xl md:hidden"
       aria-label="Навигация"
     >
       <div
@@ -75,7 +71,7 @@ export function LeagueNav({ leagueId }: { leagueId: string }) {
 
           return (
             <Link
-              key={href || "home"}
+              key={link.absolute ? "leagues" : href}
               href={path}
               prefetch
               className={navItemClass(active, !!primary)}
@@ -92,18 +88,6 @@ export function LeagueNav({ leagueId }: { leagueId: string }) {
             </Link>
           );
         })}
-        <Link
-          href="/profile"
-          prefetch
-          className={navItemClass(profileActive, false)}
-        >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center">
-            <UserCircle className="h-5 w-5" strokeWidth={2} />
-          </span>
-          <span className="max-w-[56px] truncate text-center text-[10px] font-medium leading-tight sm:max-w-none sm:text-[11px]">
-            Профиль
-          </span>
-        </Link>
       </div>
     </nav>
   );

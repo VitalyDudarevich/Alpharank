@@ -21,7 +21,7 @@ export default async function JoinPage({
 
   if (!league) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4">
+      <main className="flex min-h-screen items-center justify-center px-4 sm:px-8">
         <Card className="text-center">
           <p className="text-red-400">Ссылка недействительна</p>
         </Card>
@@ -45,7 +45,7 @@ export default async function JoinPage({
     .maybeSingle();
 
   if (existing) {
-    redirect(`/league/${league.id}`);
+    redirect(`/league/${league.id}/today`);
   }
 
   const profileName = await getProfileDisplayName(supabase, user.id);
@@ -54,7 +54,7 @@ export default async function JoinPage({
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4">
+    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-4 sm:px-8">
       <Card>
         <h1 className="mb-2 text-xl font-bold">Присоединиться</h1>
         <p className="mb-6 text-zinc-400">

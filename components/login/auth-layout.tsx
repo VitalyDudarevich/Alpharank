@@ -8,7 +8,7 @@ export function AuthLayout({
   compact?: boolean;
 }) {
   return (
-    <main className="relative flex min-h-screen min-h-[100dvh] flex-col items-center justify-end overflow-hidden px-4 pb-8 pt-6 sm:justify-center sm:pb-12">
+    <main className="relative flex min-h-screen min-h-[100dvh] flex-col items-center justify-end overflow-hidden px-4 pb-8 pt-6 sm:justify-center sm:px-8 sm:pb-12">
       <div
         className="pointer-events-none absolute inset-0"
         style={{

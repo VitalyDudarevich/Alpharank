@@ -86,7 +86,7 @@ export function StandaloneBattleSetupDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-end justify-center p-4 sm:items-center"
+      className="fixed inset-0 z-[10000] flex items-end justify-center p-4 sm:items-center sm:p-8"
       role="dialog"
       aria-modal="true"
       aria-labelledby="standalone-battle-setup-title"
@@ -99,7 +99,7 @@ export function StandaloneBattleSetupDialog({
         onClick={() => !pending && onClose()}
       />
       <div className="relative flex max-h-[min(90vh,720px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
-        <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-6 py-4 sm:px-10">
           <h2 id="standalone-battle-setup-title" className="text-lg font-bold">
             Сражение без лиги
           </h2>
@@ -114,7 +114,7 @@ export function StandaloneBattleSetupDialog({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-4 sm:px-10">
           <section className="space-y-2">
             <p className="flex items-center gap-2 text-sm font-medium text-zinc-400">
               <Gamepad2 className="h-4 w-4 text-violet-400" />
@@ -181,7 +181,7 @@ export function StandaloneBattleSetupDialog({
           </section>
         </div>
 
-        <div className="shrink-0 border-t border-zinc-800 p-4">
+        <div className="shrink-0 border-t border-zinc-800 p-6 sm:p-8">
           <Button
             type="button"
             className="h-12 w-full text-base font-semibold"

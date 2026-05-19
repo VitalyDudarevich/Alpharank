@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Plus, Swords } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -16,6 +17,8 @@ import type { BattleParticipant } from "@/lib/types";
 import type { SessionLogEvent } from "@/components/session/session-event-log";
 import type { SessionScoreEvent } from "@/lib/session-stats";
 import type { ArenaHistoryItem } from "@/lib/actions/arena";
+import { ArenaPageHeader } from "@/components/layout/arena-page-header";
+import { appMainClass, appPageClass, appPageContentClass } from "@/lib/layout-page";
 
 type ViewMode = "idle" | "active";
 
@@ -140,43 +143,41 @@ export function StandaloneArenaClient({ userId }: { userId: string }) {
 
   if (!ready) {
     return (
-      <main className="px-4 pt-6">
-        <header className="mb-6 text-center">
-          <h1 className="text-xl font-bold">Быстрое сражение</h1>
-          <p className="mt-1 text-sm text-zinc-400">Загрузка…</p>
-        </header>
+      <main className={appPageClass}>
+        <div className={cn(appPageContentClass, appMainClass)}>
+          <ArenaPageHeader />
+          <p className="mb-6 text-center text-sm text-zinc-400">Загрузка…</p>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="px-4 pt-6 pb-8">
-      <header className="mb-6 grid grid-cols-[4.5rem_1fr_4.5rem] items-center gap-2">
-        <div className="flex justify-start">
-          <Link
-            href="/"
-            className="text-sm text-violet-400 hover:text-violet-300"
-          >
-            Назад
-          </Link>
-        </div>
-        <h1 className="truncate text-center text-xl font-bold">
-          Без лиги
-        </h1>
-        <div className="flex justify-end">
-          {view === "idle" && (
-            <Button
-              type="button"
-              size="sm"
-              className="shrink-0"
-              onClick={() => setSetupOpen(true)}
+    <main className={cn(appPageClass, "pb-8")}>
+      <div className={cn(appPageContentClass, appMainClass)}>
+      <ArenaPageHeader
+        right={
+          <>
+            <Link
+              href="/"
+              className="text-sm text-violet-400 hover:text-violet-300"
             >
-              <Plus className="h-4 w-4" />
-              Сражение
-            </Button>
-          )}
-        </div>
-      </header>
+              Назад
+            </Link>
+            {view === "idle" && (
+              <Button
+                type="button"
+                size="sm"
+                className="shrink-0"
+                onClick={() => setSetupOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Сражение
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {view === "active" && sessionId && (
         <StandaloneActiveBattleView
@@ -228,6 +229,8 @@ export function StandaloneArenaClient({ userId }: { userId: string }) {
           )}
         </div>
       )}
+
+      </div>
 
       <StandaloneBattleSetupDialog
         open={setupOpen}

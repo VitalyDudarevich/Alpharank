@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import type { SessionLogEvent } from "@/components/session/session-event-log";
 import type { Game, LeagueMember } from "@/lib/types";
 import type { SessionScoreEvent } from "@/lib/session-stats";
+import { ArenaPageHeader } from "@/components/layout/arena-page-header";
+import { appMainClass } from "@/lib/layout-page";
 
 type ViewMode = "idle" | "active" | "history" | "history-detail";
 
@@ -170,20 +172,18 @@ export function TodayPageClient() {
 
   if (!ready) {
     return (
-      <main className="px-4 pt-6">
-        <header className="mb-6 text-center">
-          <h1 className="text-xl font-bold">{league.name}</h1>
-          <p className="mt-1 text-sm text-zinc-400">Загрузка…</p>
-        </header>
+      <main className={appMainClass}>
+        <ArenaPageHeader />
+        <p className="mb-6 text-center text-sm text-zinc-400">Загрузка…</p>
       </main>
     );
   }
 
   return (
-    <main className="px-4 pt-6 pb-8">
-      <header className="mb-6 grid grid-cols-[4.5rem_1fr_4.5rem] items-center gap-2">
-        <div className="flex justify-start">
-          {view === "history" && (
+    <main className={appMainClass}>
+      <ArenaPageHeader
+        right={
+          view === "history" ? (
             <button
               type="button"
               onClick={() => setView("idle")}
@@ -191,11 +191,9 @@ export function TodayPageClient() {
             >
               Назад
             </button>
-          )}
-        </div>
-        <h1 className="truncate text-center text-xl font-bold">{league.name}</h1>
-        <div aria-hidden className="w-[4.5rem]" />
-      </header>
+          ) : null
+        }
+      />
 
       {view === "active" && activeGame && sessionId && (
         <ActiveBattleView
@@ -227,7 +225,7 @@ export function TodayPageClient() {
             <Swords className="mx-auto mb-4 h-12 w-12 text-violet-400/60" />
             <p className="mb-2 font-medium text-zinc-200">Нет активного сражения</p>
             <p className="mb-6 text-sm text-zinc-500">
-              Выберите лигу, игру и участников, затем начните учёт очков
+              Выберите игру и участников, затем начните учёт очков
             </p>
             <Button
               type="button"

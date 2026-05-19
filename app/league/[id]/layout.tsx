@@ -1,5 +1,6 @@
 import { LeagueProvider } from "@/lib/league-context";
 import { getLeagueContext } from "@/lib/league-data";
+import { appPageContentClass, leaguePageClass } from "@/lib/layout-page";
 
 export default async function LeagueLayout({
   children,
@@ -23,8 +24,8 @@ export default async function LeagueLayout({
         userId: user.id,
       }}
     >
-      <div className="mx-auto min-h-screen w-full max-w-lg pb-[calc(4.75rem+env(safe-area-inset-bottom))] pl-12 md:max-w-2xl md:pb-28">
-        {children}
+      <div className={leaguePageClass}>
+        <div className={appPageContentClass}>{children}</div>
       </div>
     </LeagueProvider>
   );

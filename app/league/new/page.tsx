@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfileDisplayName } from "@/lib/profile";
+import { AppPageHeader } from "@/components/layout/app-page-header";
 import { NewLeagueForm } from "@/components/league/new-league-form";
+import { appMainClass, appPageClass, appPageContentClass } from "@/lib/layout-page";
+import { cn } from "@/lib/utils";
 
 const errorMessages: Record<string, string> = {
   name: "Укажите название лиги",
@@ -26,8 +29,9 @@ export default async function NewLeaguePage({
   if (!displayName) redirect("/profile?redirect=/league/new");
 
   return (
-    <main className="mx-auto min-h-screen max-w-lg px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">Новая лига</h1>
+    <main className={appPageClass}>
+      <div className={cn(appPageContentClass, appMainClass)}>
+      <AppPageHeader title="Новая лига" titleClassName="text-2xl" />
 
       {error && (
         <div className="mb-4 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-300">
@@ -50,6 +54,7 @@ export default async function NewLeaguePage({
         creatorDisplayName={displayName}
         creatorUserId={user.id}
       />
+      </div>
     </main>
   );
 }

@@ -1,13 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Gamepad2, Shield, Users, X } from "lucide-react";
+import { Gamepad2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { startBattle } from "@/lib/actions/arena";
-import { LeaguePicker } from "./league-picker";
 import type { Game, League, LeagueMember } from "@/lib/types";
 
 type BattleSetupDialogProps = {
@@ -97,7 +95,7 @@ export function BattleSetupDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-end justify-center p-4 sm:items-center"
+      className="fixed inset-0 z-[10000] flex items-end justify-center p-4 sm:items-center sm:p-8"
       role="dialog"
       aria-modal="true"
       aria-labelledby="battle-setup-title"
@@ -111,7 +109,7 @@ export function BattleSetupDialog({
       />
 
       <div className="relative flex max-h-[min(90vh,720px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
-        <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-6 py-4 sm:px-10">
           <h2 id="battle-setup-title" className="text-lg font-bold">
             Настройка сражения
           </h2>
@@ -126,17 +124,7 @@ export function BattleSetupDialog({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-4">
-          <section className="space-y-2">
-            <p className="flex items-center gap-2 text-sm font-medium text-zinc-400">
-              <Shield className="h-4 w-4 text-violet-400" />
-              Лига
-            </p>
-            <div className="overflow-hidden rounded-xl border border-zinc-700">
-              <LeaguePicker embedded />
-            </div>
-          </section>
-
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-4 sm:px-10">
           <section className="space-y-2">
             <p className="flex items-center gap-2 text-sm font-medium text-zinc-400">
               <Gamepad2 className="h-4 w-4 text-violet-400" />
@@ -211,7 +199,7 @@ export function BattleSetupDialog({
           </section>
         </div>
 
-        <div className="shrink-0 space-y-3 border-t border-zinc-800 p-4">
+        <div className="shrink-0 border-t border-zinc-800 p-6 sm:p-8">
           <Button
             type="button"
             className="h-12 w-full text-base font-semibold"
@@ -220,15 +208,6 @@ export function BattleSetupDialog({
           >
             {pending ? "Запуск…" : "Начать сражение!"}
           </Button>
-          <p className="text-center text-xs text-zinc-500">
-            <Link
-              href="/arena"
-              className="text-violet-400 hover:text-violet-300"
-              onClick={onClose}
-            >
-              Сражение без лиги →
-            </Link>
-          </p>
         </div>
       </div>
     </div>

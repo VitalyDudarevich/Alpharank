@@ -1,6 +1,6 @@
 export default function LeagueLoading() {
   return (
-    <div className="animate-pulse px-4 pt-6">
+    <div className="animate-pulse px-4 pt-6 sm:px-0">
       <div className="mb-6 h-7 w-40 rounded-lg bg-zinc-800" />
       <div className="mb-4 h-4 w-24 rounded bg-zinc-800/80" />
       <div className="space-y-3">

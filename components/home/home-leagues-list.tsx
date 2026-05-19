@@ -54,7 +54,7 @@ export function HomeLeaguesList({
         return (
           <li key={league.id}>
             <Link
-              href={`/league/${league.id}`}
+              href={`/league/${league.id}/today`}
               onClick={() => writeLastLeagueId(league.id)}
             >
               <Card

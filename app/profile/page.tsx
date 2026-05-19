@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/profile";
 import { ProfilePageClient } from "@/components/profile/profile-page-client";
+import { AppPageHeader } from "@/components/layout/app-page-header";
+import { appMainClass, appPageClass, appPageContentClass } from "@/lib/layout-page";
+import { cn } from "@/lib/utils";
 
 export default async function ProfilePage({
   searchParams,
@@ -22,16 +25,21 @@ export default async function ProfilePage({
   const backHref = redirectTo && redirectTo.startsWith("/") ? redirectTo : "/";
 
   return (
-    <main className="mx-auto min-h-screen max-w-lg px-4 py-8 pb-[calc(5rem+env(safe-area-inset-bottom))] pl-12 md:max-w-2xl md:pb-28">
-      <Link
-        href={backHref}
-        className="mb-6 inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-zinc-200"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Назад
-      </Link>
-
-      <h1 className="mb-6 text-2xl font-bold">Профиль</h1>
+    <main className={appPageClass}>
+      <div className={cn(appPageContentClass, appMainClass)}>
+      <AppPageHeader
+        title="Профиль"
+        titleClassName="text-2xl"
+        right={
+          <Link
+            href={backHref}
+            className="inline-flex items-center gap-1 text-sm text-violet-400 hover:text-violet-300"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Назад
+          </Link>
+        }
+      />
 
       {error === "name" && (
         <div className="mb-4 rounded-xl border border-red-500/30 bg-red-950/40 px-4 py-3 text-sm text-red-300">
@@ -45,6 +53,7 @@ export default async function ProfilePage({
         avatarUrl={profile?.avatar_url ?? null}
         redirectTo={redirectTo}
       />
+      </div>
     </main>
   );
 }

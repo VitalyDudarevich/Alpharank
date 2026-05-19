@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { Plus, Swords } from "lucide-react";
+import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getProfile } from "@/lib/profile";
 import { HomeLeaguesList } from "@/components/home/home-leagues-list";
+import { AppPageHeader } from "@/components/layout/app-page-header";
+import { appMainClass, appPageClass, appPageContentClass } from "@/lib/layout-page";
+import { cn } from "@/lib/utils";
 
 export default async function HomePage({
   searchParams,
@@ -21,8 +23,6 @@ export default async function HomePage({
   if (!user) {
     redirect("/login");
   }
-
-  const profile = await getProfile(supabase, user.id);
 
   const { data: memberships, error: membershipsError } = await supabase
     .from("league_members")
@@ -46,37 +46,9 @@ export default async function HomePage({
       .filter(Boolean) ?? [];
 
   return (
-    <main className="mx-auto min-h-screen max-w-lg px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pl-12 pt-8 md:max-w-2xl md:pb-28">
-      <Link
-        href="/arena"
-        className="mb-6 flex items-center gap-3 rounded-2xl border border-violet-500/30 bg-violet-600/10 px-4 py-4 transition-colors hover:border-violet-500/50 hover:bg-violet-600/15"
-      >
-        <Swords className="h-8 w-8 shrink-0 text-violet-400" />
-        <div className="min-w-0 text-left">
-          <p className="font-semibold text-violet-100">Быстрое сражение</p>
-          <p className="text-sm text-zinc-500">
-            Без лиги — игра и участники на лету
-          </p>
-        </div>
-      </Link>
-
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Мои лиги</h1>
-          <Link
-            href="/profile"
-            className="text-sm text-violet-400 hover:text-violet-300"
-          >
-            {profile?.display_name ?? "Заполнить профиль"}
-          </Link>
-        </div>
-        <Link href="/league/new">
-          <Button size="sm">
-            <Plus className="h-4 w-4" />
-            Новая
-          </Button>
-        </Link>
-      </header>
+    <main className={appPageClass}>
+      <div className={cn(appPageContentClass, appMainClass)}>
+      <AppPageHeader title="Мои лиги" titleClassName="text-2xl" />
 
       {membershipsError && (
         <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-950/30 px-4 py-3 text-sm text-amber-200">
@@ -86,10 +58,7 @@ export default async function HomePage({
 
       {leagues.length === 0 ? (
         <Card className="text-center">
-          <p className="mb-4 text-zinc-400">Пока нет лиг</p>
-          <Link href="/league/new">
-            <Button>Создать лигу</Button>
-          </Link>
+          <p className="text-zinc-400">Пока нет лиг</p>
         </Card>
       ) : (
         <HomeLeaguesList
@@ -102,6 +71,15 @@ export default async function HomePage({
         />
       )}
 
+      <div className="mt-6">
+        <Link href="/league/new" className="block w-full">
+          <Button className="h-12 w-full text-base font-semibold">
+            <Plus className="h-5 w-5" />
+            Новая лига
+          </Button>
+        </Link>
+      </div>
+      </div>
     </main>
   );
 }

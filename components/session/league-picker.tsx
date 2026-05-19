@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, Plus, Search, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,25 @@ type UserLeague = {
   year: number | null;
 };
 
+export const STANDALONE_ARENA_LEAGUE_ID = "__standalone__";
+
+const standaloneLeagueOption: UserLeague = {
+  id: STANDALONE_ARENA_LEAGUE_ID,
+  name: "Без лиги",
+  year: null,
+};
+
 interface LeaguePickerProps {
   embedded?: boolean;
+  onStandaloneSelect?: () => void;
 }
 
-export function LeaguePicker({ embedded = true }: LeaguePickerProps) {
+export function LeaguePicker({
+  embedded = true,
+  onStandaloneSelect,
+}: LeaguePickerProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { leagueId, league, userId } = useLeague();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -67,24 +80,41 @@ export function LeaguePicker({ embedded = true }: LeaguePickerProps) {
 
   const q = query.trim().toLowerCase();
 
+  const isLeaguePage = /^\/league\/[^/]+/.test(pathname);
+
   const filtered = useMemo(() => {
-    if (!q) return leagues;
-    return leagues.filter(
-      (l) =>
-        l.name.toLowerCase().includes(q) ||
-        (l.year != null && String(l.year).includes(q))
-    );
-  }, [leagues, q]);
+    const matchesLeagues = !q
+      ? leagues
+      : leagues.filter(
+          (l) =>
+            l.name.toLowerCase().includes(q) ||
+            (l.year != null && String(l.year).includes(q))
+        );
+    if (isLeaguePage) return matchesLeagues;
+    const showStandalone =
+      !q || standaloneLeagueOption.name.toLowerCase().includes(q);
+    return showStandalone
+      ? [standaloneLeagueOption, ...matchesLeagues]
+      : matchesLeagues;
+  }, [leagues, q, isLeaguePage]);
+
+  const isStandaloneArena =
+    pathname === "/arena" || pathname.startsWith("/arena/");
 
   const selectLeague = (id: string) => {
     setOpen(false);
     setQuery("");
+    if (id === STANDALONE_ARENA_LEAGUE_ID) {
+      onStandaloneSelect?.();
+      router.push("/arena");
+      return;
+    }
     if (id !== leagueId) {
       router.push(`/league/${id}/today`);
     }
   };
 
-  const label = league.name;
+  const label = isStandaloneArena ? "Без лиги" : league.name;
 
   return (
     <div ref={panelRef} className="relative">
@@ -162,7 +192,10 @@ export function LeaguePicker({ embedded = true }: LeaguePickerProps) {
                     onClick={() => selectLeague(l.id)}
                     className={cn(
                       "flex w-full flex-col px-4 py-2.5 text-left transition-colors hover:bg-zinc-800/60",
-                      l.id === leagueId && "bg-violet-600/15 text-violet-200"
+                      (l.id === STANDALONE_ARENA_LEAGUE_ID
+                        ? isStandaloneArena
+                        : l.id === leagueId) &&
+                        "bg-violet-600/15 text-violet-200"
                     )}
                   >
                     <span className="font-medium">{l.name}</span>

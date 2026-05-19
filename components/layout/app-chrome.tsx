@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AppBurgerMenu } from "@/components/layout/app-burger-menu";
+import { AppSidebar } from "@/components/layout/app-sidebar";
 import { BottomNavShell } from "@/components/layout/bottom-nav-shell";
 import { shouldShowAppNav } from "@/lib/app-nav";
 import {
@@ -83,6 +84,7 @@ export function AppChrome() {
 
   return (
     <>
+      <AppSidebar leagueId={leagueId} />
       <AppBurgerMenu leagueId={leagueId} />
       <BottomNavShell leagueId={leagueId} />
     </>

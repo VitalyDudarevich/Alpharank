@@ -1,5 +1,10 @@
-import { LeagueHomePageClient } from "@/components/league/league-home-page-client";
+import { redirect } from "next/navigation";
 
-export default function LeagueHomePage() {
-  return <LeagueHomePageClient />;
+export default async function LeagueIndexPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  redirect(`/league/${id}/today`);
 }
