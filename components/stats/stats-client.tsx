@@ -1,30 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Game, LeagueMember, ScoreEvent, StatsFilter } from "@/lib/types";
-import { filterScoreEvents, computeMemberStats, buildCumulativeTimeline } from "@/lib/stats";
+import type { ScoreEvent, StatsFilter, StatsPlayer } from "@/lib/types";
+import {
+  filterScoreEvents,
+  computeMemberStats,
+  buildCumulativeTimeline,
+} from "@/lib/stats";
 import { StatsFilters } from "./stats-filters";
 import { StatsTable } from "./stats-table";
 import { StatsCharts } from "./stats-charts";
 
 interface StatsClientProps {
   events: ScoreEvent[];
-  members: LeagueMember[];
-  games: Game[];
-  eloEnabled: boolean;
-  eloRatings: { member_id: string; game_id: string | null; rating: number }[];
-  filterGameId?: string;
+  players: StatsPlayer[];
+  gameNames: string[];
 }
 
-export function StatsClient({
-  events,
-  members,
-  games,
-  eloEnabled,
-  eloRatings,
-}: StatsClientProps) {
+export function StatsClient({ events, players, gameNames }: StatsClientProps) {
   const [filter, setFilter] = useState<StatsFilter>({});
-  const [showElo, setShowElo] = useState(eloEnabled);
 
   const filteredEvents = useMemo(() => {
     let filtered = filterScoreEvents(events, filter);
@@ -41,53 +35,27 @@ export function StatsClient({
     return filtered;
   }, [events, filter]);
 
-  const eloMap = useMemo(() => {
-    const map = new Map<string, number>();
-    const gameId = filter.gameId ?? null;
-    eloRatings
-      .filter((r) => r.game_id === gameId || (!gameId && r.game_id === null))
-      .forEach((r) => map.set(r.member_id, Number(r.rating)));
-    return map;
-  }, [eloRatings, filter.gameId]);
-
   const stats = useMemo(
-    () =>
-      computeMemberStats(
-        filteredEvents,
-        members,
-        showElo && eloEnabled ? eloMap : undefined
-      ),
-    [filteredEvents, members, showElo, eloEnabled, eloMap]
+    () => computeMemberStats(filteredEvents, players),
+    [filteredEvents, players]
   );
 
   const timeline = useMemo(
-    () => buildCumulativeTimeline(filteredEvents, members),
-    [filteredEvents, members]
+    () => buildCumulativeTimeline(filteredEvents, players),
+    [filteredEvents, players]
   );
 
   return (
     <div className="space-y-6">
       <StatsFilters
-        games={games}
-        members={members}
+        gameNames={gameNames}
+        players={players}
         filter={filter}
         onChange={setFilter}
       />
 
-      {eloEnabled && (
-        <label className="flex items-center gap-2 text-sm text-zinc-400">
-          <input
-            type="checkbox"
-            checked={showElo}
-            onChange={(e) => setShowElo(e.target.checked)}
-            className="rounded border-zinc-600"
-          />
-          Показать ELO
-        </label>
-      )}
-
-      <StatsTable stats={stats} showElo={showElo && eloEnabled} />
-      <StatsCharts stats={stats} timeline={timeline} showElo={showElo && eloEnabled} />
+      <StatsTable stats={stats} />
+      <StatsCharts stats={stats} timeline={timeline} />
     </div>
   );
 }

@@ -30,14 +30,12 @@ const COLORS = [
 interface StatsChartsProps {
   stats: MemberStats[];
   timeline: Record<string, string | number>[];
-  showElo: boolean;
 }
 
-export function StatsCharts({ stats, timeline, showElo }: StatsChartsProps) {
+export function StatsCharts({ stats, timeline }: StatsChartsProps) {
   const barData = stats.map((s) => ({
     name: s.display_name,
     wins: s.wins,
-    elo: s.elo ?? 0,
   }));
 
   const pieData = stats.filter((s) => s.wins > 0).map((s) => ({
@@ -124,24 +122,6 @@ export function StatsCharts({ stats, timeline, showElo }: StatsChartsProps) {
         </ChartCard>
       )}
 
-      {showElo && stats.some((s) => s.elo) && (
-        <ChartCard title="ELO (опционально)">
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={barData}>
-              <XAxis dataKey="name" tick={{ fill: "#a1a1aa", fontSize: 11 }} />
-              <YAxis tick={{ fill: "#a1a1aa", fontSize: 11 }} domain={["auto", "auto"]} />
-              <Tooltip
-                contentStyle={{
-                  background: "#18181b",
-                  border: "1px solid #3f3f46",
-                  borderRadius: 12,
-                }}
-              />
-              <Bar dataKey="elo" fill="#10b981" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      )}
     </div>
   );
 }

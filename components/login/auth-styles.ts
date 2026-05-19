@@ -21,10 +21,11 @@ export const authLabelClass = "mb-2 block text-xs font-medium text-slate-400";
 export const authButtonClass = cn(
   "mt-2 flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl",
   "text-[15px] font-semibold text-white",
-  "border border-red-800/60",
+  "border border-indigo-500/35",
   "bg-gradient-to-b from-indigo-700 to-indigo-900",
   "transition-colors duration-200",
-  "hover:from-indigo-600 hover:to-indigo-800 hover:border-red-700/70",
+  "hover:from-indigo-600 hover:to-indigo-800 hover:border-indigo-400/50",
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 focus-visible:ring-offset-0",
   "active:scale-[0.98] disabled:opacity-50"
 );
 
@@ -45,8 +46,10 @@ export const authCheckboxIconClass = cn(
 export const authLinkClass =
   "text-sm text-slate-400 transition-colors hover:text-slate-200";
 
-export const authMutedLinkClass =
-  "text-sm text-indigo-400/90 transition-colors hover:text-indigo-300";
+export const authMutedLinkClass = cn(
+  "text-sm text-indigo-400/90 transition-colors hover:text-indigo-300",
+  "rounded outline-none focus:outline-none focus-visible:outline-none"
+);
 
 export function authErrorMessage(message: string): string {
   const map: Record<string, string> = {

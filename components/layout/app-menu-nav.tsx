@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import {
-  Home,
-  LogOut,
   Swords,
+  LogOut,
   UserCircle,
-  Users,
   BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/lib/actions/auth";
+import { PwaUpdateControls } from "@/components/pwa/pwa-update-controls";
 import { cn } from "@/lib/utils";
 
 export type AppMenuLink = {
@@ -20,54 +19,27 @@ export type AppMenuLink = {
   active: boolean;
 };
 
-export function buildAppMenuLinks(
-  pathname: string,
-  leagueId: string | null
-): AppMenuLink[] {
-  const leagueBase = leagueId ? `/league/${leagueId}` : null;
-  const links: AppMenuLink[] = [];
-
-  if (leagueBase) {
-    links.push(
-      {
-        href: `${leagueBase}/today`,
-        label: "Арена",
-        icon: Swords,
-        active:
-          pathname === leagueBase ||
-          pathname.startsWith(`${leagueBase}/today`),
-      },
-      {
-        href: `${leagueBase}/stats`,
-        label: "Статистика",
-        icon: BarChart3,
-        active: pathname.startsWith(`${leagueBase}/stats`),
-      },
-      {
-        href: `${leagueBase}/members`,
-        label: "Участники",
-        icon: Users,
-        active: pathname.startsWith(`${leagueBase}/members`),
-      }
-    );
-  }
-
-  links.push(
+export function buildAppMenuLinks(pathname: string): AppMenuLink[] {
+  return [
     {
       href: "/",
-      label: "Лиги",
-      icon: Home,
+      label: "Арена",
+      icon: Swords,
       active: pathname === "/",
+    },
+    {
+      href: "/stats",
+      label: "Статистика",
+      icon: BarChart3,
+      active: pathname.startsWith("/stats"),
     },
     {
       href: "/profile",
       label: "Профиль",
       icon: UserCircle,
       active: pathname.startsWith("/profile"),
-    }
-  );
-
-  return links;
+    },
+  ];
 }
 
 type AppMenuNavProps = {
@@ -102,7 +74,8 @@ export function AppMenuNav({ links, onNavigate, className }: AppMenuNavProps) {
         })}
       </ul>
 
-      <div className="shrink-0 p-4">
+      <div className="shrink-0 space-y-3 p-4">
+        <PwaUpdateControls variant="menu" onAction={onNavigate} />
         <form action={signOut}>
           <button
             type="submit"

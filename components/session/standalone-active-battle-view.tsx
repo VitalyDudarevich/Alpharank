@@ -3,14 +3,16 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { format, intervalToDuration } from "date-fns";
 import { ru } from "date-fns/locale";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { endStandaloneBattle } from "@/lib/actions/standalone-arena";
+import { endBattle } from "@/lib/actions/arena";
 import { DeferredArenaWinsChart } from "./deferred-arena-wins-chart";
 import { StandaloneBattleScoreboard } from "./standalone-battle-scoreboard";
-import { SessionEventLog, type SessionLogEvent } from "./session-event-log";
+import { SessionEventLog } from "./session-event-log";
 import { useSessionScoreEvents } from "./use-session-score-events";
 import { winCountsFromEvents } from "@/lib/arena-games";
+import { buildSessionLogEvents } from "@/lib/session-log";
 import type { BattleParticipant } from "@/lib/types";
 import type { SessionScoreEvent } from "@/lib/session-stats";
 
@@ -19,10 +21,10 @@ type StandaloneActiveBattleViewProps = {
   gameName: string;
   participants: BattleParticipant[];
   sessionScoreEvents: SessionScoreEvent[];
-  logEvents: SessionLogEvent[];
   actorNames: Record<string, string>;
   currentUserId: string;
   startedAt: string | null;
+  onBack: () => void;
   onEnded: () => void;
 };
 
@@ -53,10 +55,10 @@ export function StandaloneActiveBattleView({
   gameName,
   participants,
   sessionScoreEvents,
-  logEvents,
   actorNames,
   currentUserId,
   startedAt,
+  onBack,
   onEnded,
 }: StandaloneActiveBattleViewProps) {
   const [ending, startEndTransition] = useTransition();
@@ -71,9 +73,8 @@ export function StandaloneActiveBattleView({
     return () => window.clearInterval(timer);
   }, [startedAt]);
 
-  const { events: sessionEvents, appendEvent, removeEvent } =
+  const { events: sessionEvents, appendEvent, markEventDeleted } =
     useSessionScoreEvents({
-      leagueId: "",
       sessionId,
       participantIds,
       initialEvents: sessionScoreEvents,
@@ -92,10 +93,18 @@ export function StandaloneActiveBattleView({
     [participants]
   );
 
-  const roundsPlayed = useMemo(
-    () => sessionEvents.filter((e) => !e.deleted_at).length,
-    [sessionEvents]
+  const logEvents = useMemo(
+    () =>
+      buildSessionLogEvents(
+        sessionEvents,
+        memberNames,
+        actorNames,
+        currentUserId
+      ),
+    [sessionEvents, memberNames, actorNames, currentUserId]
   );
+
+  const roundsPlayed = logEvents.length;
 
   const durationMs = startedAt
     ? now - new Date(startedAt).getTime()
@@ -103,7 +112,7 @@ export function StandaloneActiveBattleView({
 
   const handleEnd = () => {
     startEndTransition(async () => {
-      const result = await endStandaloneBattle(sessionId);
+      const result = await endBattle(sessionId);
       if (result.error) {
         toast.error(result.error);
         return;
@@ -115,6 +124,14 @@ export function StandaloneActiveBattleView({
 
   return (
     <div className="space-y-6">
+      <button
+        type="button"
+        onClick={onBack}
+        className="inline-flex items-center gap-1.5 text-sm text-violet-400 hover:text-violet-300"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        К арене
+      </button>
       <div className="rounded-2xl border border-violet-500/40 bg-violet-600/10 px-4 py-4 text-center">
         <h2 className="text-2xl font-bold tracking-tight text-violet-50 sm:text-3xl">
           {gameName}
@@ -157,6 +174,7 @@ export function StandaloneActiveBattleView({
           sessionId={sessionId}
           gameName={gameName}
           participants={participants}
+          currentUserId={currentUserId}
           winCounts={winCounts}
           onEventAdded={appendEvent}
         />
@@ -174,6 +192,20 @@ export function StandaloneActiveBattleView({
         </div>
       </section>
 
+      <section className="rounded-2xl border border-zinc-700 bg-zinc-900/80 p-4">
+        <h2 className="mb-1 text-sm font-medium text-zinc-300">
+          История изменений
+        </h2>
+        <p className="mb-3 text-xs text-zinc-500">
+          Каждое +1 записывается здесь. Ошиблись — нажмите «Откат» (до 20 минут).
+        </p>
+        <SessionEventLog
+          events={logEvents}
+          currentUserId={currentUserId}
+          onEventUndone={markEventDeleted}
+        />
+      </section>
+
       <Button
         type="button"
         variant="outline"
@@ -183,29 +215,6 @@ export function StandaloneActiveBattleView({
       >
         {ending ? "Завершение…" : "Завершить сражение"}
       </Button>
-
-      <section>
-        <h2 className="mb-2 text-sm font-medium text-zinc-400">
-          Журнал действий
-        </h2>
-        <SessionEventLog
-          leagueId={null}
-          sessionId={sessionId}
-          gameId={null}
-          initialEvents={logEvents.map((e) => ({
-            ...e,
-            winner_member_id:
-              e.winner_member_id ||
-              sessionScoreEvents.find((s) => s.id === e.id)
-                ?.winner_participant_id ||
-              "",
-          }))}
-          memberNames={memberNames}
-          actorNames={actorNames}
-          currentUserId={currentUserId}
-          onEventRemoved={removeEvent}
-        />
-      </section>
     </div>
   );
 }

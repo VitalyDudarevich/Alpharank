@@ -1,15 +1,7 @@
 "use client";
 
-import { LeagueNav } from "@/components/layout/league-nav";
+import { AppBottomNav } from "@/components/layout/app-bottom-nav";
 
-type BottomNavShellProps = {
-  leagueId: string | null;
-};
-
-export function BottomNavShell({ leagueId }: BottomNavShellProps) {
-  if (!leagueId) {
-    return null;
-  }
-
-  return <LeagueNav leagueId={leagueId} />;
+export function BottomNavShell() {
+  return <AppBottomNav />;
 }

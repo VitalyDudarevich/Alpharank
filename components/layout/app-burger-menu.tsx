@@ -7,14 +7,10 @@ import { cn } from "@/lib/utils";
 import { shouldShowAppNav } from "@/lib/app-nav";
 import { AppMenuNav, buildAppMenuLinks } from "@/components/layout/app-menu-nav";
 
-type AppBurgerMenuProps = {
-  leagueId: string | null;
-};
-
-export function AppBurgerMenu({ leagueId }: AppBurgerMenuProps) {
+export function AppBurgerMenu() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const links = buildAppMenuLinks(pathname, leagueId);
+  const links = buildAppMenuLinks(pathname);
 
   useEffect(() => {
     setOpen(false);
@@ -92,4 +88,3 @@ export function AppBurgerMenu({ leagueId }: AppBurgerMenuProps) {
     </div>
   );
 }
-

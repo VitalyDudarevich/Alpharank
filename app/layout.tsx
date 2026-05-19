@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { AppChrome } from "@/components/layout/app-chrome";
+import { PwaUpdateProvider } from "@/components/pwa/pwa-update-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -41,8 +42,10 @@ export default function RootLayout({
   return (
     <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
       <body className="min-h-full bg-zinc-950 text-zinc-50 antialiased">
-        {children}
-        <AppChrome />
+        <PwaUpdateProvider>
+          {children}
+          <AppChrome />
+        </PwaUpdateProvider>
         <Toaster position="top-center" richColors theme="dark" />
       </body>
     </html>

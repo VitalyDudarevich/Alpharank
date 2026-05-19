@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { PwaUpdateControls } from "@/components/pwa/pwa-update-controls";
 import { cn } from "@/lib/utils";
 
 type ProfilePageClientProps = {
@@ -421,6 +422,8 @@ export function ProfilePageClient({
           </>
         )}
       </Card>
+
+      <PwaUpdateControls />
     </div>
   );
 }

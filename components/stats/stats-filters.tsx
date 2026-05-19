@@ -1,15 +1,20 @@
 "use client";
 
-import type { Game, LeagueMember, StatsFilter } from "@/lib/types";
+import type { StatsFilter, StatsPlayer } from "@/lib/types";
 
 interface StatsFiltersProps {
-  games: Game[];
-  members: LeagueMember[];
+  gameNames: string[];
+  players: StatsPlayer[];
   filter: StatsFilter;
   onChange: (filter: StatsFilter) => void;
 }
 
-export function StatsFilters({ games, members, filter, onChange }: StatsFiltersProps) {
+export function StatsFilters({
+  gameNames,
+  players,
+  filter,
+  onChange,
+}: StatsFiltersProps) {
   return (
     <div className="space-y-3">
       <div>
@@ -42,16 +47,16 @@ export function StatsFilters({ games, members, filter, onChange }: StatsFiltersP
       <div>
         <label className="mb-1 block text-xs font-medium text-zinc-500">Игра</label>
         <select
-          value={filter.gameId ?? ""}
+          value={filter.gameName ?? ""}
           onChange={(e) =>
-            onChange({ ...filter, gameId: e.target.value || undefined })
+            onChange({ ...filter, gameName: e.target.value || undefined })
           }
           className="h-10 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100"
         >
           <option value="">Все игры</option>
-          {games.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
+          {gameNames.map((name) => (
+            <option key={name} value={name}>
+              {name}
             </option>
           ))}
         </select>
@@ -80,44 +85,46 @@ export function StatsFilters({ games, members, filter, onChange }: StatsFiltersP
         </select>
       </div>
 
-      <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-500">
-          Точный состав (все вместе)
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {members.map((m) => {
-            const selected = filter.rosterIds?.includes(m.id);
-            return (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => {
-                  const current = filter.rosterIds ?? [];
-                  const next = selected
-                    ? current.filter((id) => id !== m.id)
-                    : [...current, m.id];
-                  onChange({
-                    ...filter,
-                    rosterIds: next.length > 0 ? next : undefined,
-                  });
-                }}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                  selected
-                    ? "bg-emerald-600/20 text-emerald-300 border border-emerald-600/50"
-                    : "bg-zinc-800 text-zinc-400"
-                }`}
-              >
-                {m.display_name}
-              </button>
-            );
-          })}
+      {players.length > 0 && (
+        <div>
+          <label className="mb-1 block text-xs font-medium text-zinc-500">
+            Точный состав (все вместе)
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {players.map((m) => {
+              const selected = filter.rosterIds?.includes(m.id);
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => {
+                    const current = filter.rosterIds ?? [];
+                    const next = selected
+                      ? current.filter((id) => id !== m.id)
+                      : [...current, m.id];
+                    onChange({
+                      ...filter,
+                      rosterIds: next.length > 0 ? next : undefined,
+                    });
+                  }}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                    selected
+                      ? "bg-emerald-600/20 text-emerald-300 border border-emerald-600/50"
+                      : "bg-zinc-800 text-zinc-400"
+                  }`}
+                >
+                  {m.display_name}
+                </button>
+              );
+            })}
+          </div>
+          {filter.rosterIds && filter.rosterIds.length > 0 && (
+            <p className="mt-1 text-xs text-zinc-500">
+              Учитываются только матчи с точно этим составом
+            </p>
+          )}
         </div>
-        {filter.rosterIds && filter.rosterIds.length > 0 && (
-          <p className="mt-1 text-xs text-zinc-500">
-            Учитываются только матчи с точно этим составом
-          </p>
-        )}
-      </div>
+      )}
     </div>
   );
 }

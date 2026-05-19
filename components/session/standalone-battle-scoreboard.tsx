@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { addStandaloneWin } from "@/lib/actions/score";
+import { addWin } from "@/lib/actions/score";
 import { buildMemberColorMap } from "@/lib/player-colors";
 import type { BattleParticipant } from "@/lib/types";
 import type { SessionScoreEvent } from "@/lib/session-stats";
@@ -13,6 +13,7 @@ type StandaloneBattleScoreboardProps = {
   sessionId: string;
   gameName: string;
   participants: BattleParticipant[];
+  currentUserId: string;
   winCounts: Record<string, number>;
   disabled?: boolean;
   onEventAdded?: (event: SessionScoreEvent) => void;
@@ -22,6 +23,7 @@ export function StandaloneBattleScoreboard({
   sessionId,
   gameName,
   participants,
+  currentUserId,
   winCounts: initialCounts,
   disabled,
   onEventAdded,
@@ -53,7 +55,7 @@ export function StandaloneBattleScoreboard({
     }));
 
     startTransition(async () => {
-      const result = await addStandaloneWin({
+      const result = await addWin({
         sessionId,
         winnerParticipantId: participant.id,
         participantIds,
@@ -78,7 +80,7 @@ export function StandaloneBattleScoreboard({
           participant_ids: participantIds,
           game_id: null,
           created_at: new Date().toISOString(),
-          created_by: "",
+          created_by: currentUserId,
           deleted_at: null,
         });
       }

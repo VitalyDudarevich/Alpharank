@@ -4,15 +4,12 @@
 
 ## Возможности
 
-- Лиги/турниры (например «2026»)
-- Игры, игроки, игровые дни
+- Арена: сражения с игрой и участниками по имени
 - **+1 победа** одной кнопкой с телефона
-- Real-time обновления для всех участников
+- Real-time обновления в активном сражении
 - Статистика с фильтрами: игра, период, число игроков, точный состав
 - Графики (столбцы, круг, динамика)
-- Опциональный ELO (по играм и общий)
-- Журнал действий (audit log)
-- Приглашение по ссылке
+- Личный каталог игр
 
 ## Стек
 
@@ -27,10 +24,21 @@
 
 #### Вариант A — SQL Editor (проще, без CLI)
 
-В **SQL Editor** выполните по порядку содержимое файлов:
+В **SQL Editor** выполните по порядку:
 
-- [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql)
-- [`supabase/migrations/002_fix_league_create_rls.sql`](supabase/migrations/002_fix_league_create_rls.sql)
+1. `supabase/migrations/001_initial.sql` — арена, сражения, статистика
+2. `supabase/migrations/002_profiles.sql` — профили
+3. `supabase/migrations/003_profile_avatar.sql` — аватары
+
+#### Уже был старый проект с лигами?
+
+История миграций пересобрана без лиг. Для существующей БД проще всего:
+
+```powershell
+npx supabase db reset
+```
+
+(удалит данные) или в Dashboard → SQL: вручную удалить старые таблицы `leagues`, `league_members`, `games` и применить три файла выше.
 
 #### Вариант B — Supabase CLI (`db push`)
 

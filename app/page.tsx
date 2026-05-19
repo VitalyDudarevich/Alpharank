@@ -1,16 +1,9 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/profile";
-import { LeaguesPageClient } from "@/components/league/leagues-page-client";
-import { appMainClass, appPageClass, appPageContentClass } from "@/lib/layout-page";
-import { cn } from "@/lib/utils";
+import { ArenaPageClient } from "@/components/arena/arena-page-client";
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ highlight?: string; create?: string }>;
-}) {
-  const { create } = await searchParams;
+export default async function HomePage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,15 +20,5 @@ export default async function HomePage({
     redirect("/profile?redirect=/");
   }
 
-  return (
-    <main className={appPageClass}>
-      <div className={cn(appPageContentClass, appMainClass)}>
-        <LeaguesPageClient
-          userId={user.id}
-          creatorDisplayName={displayName}
-          initialCreate={create === "1"}
-        />
-      </div>
-    </main>
-  );
+  return <ArenaPageClient userId={user.id} />;
 }

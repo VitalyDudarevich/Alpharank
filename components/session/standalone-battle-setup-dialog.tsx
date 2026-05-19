@@ -4,12 +4,14 @@ import { useEffect, useState, useTransition } from "react";
 import { Gamepad2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { startStandaloneBattle } from "@/lib/actions/standalone-arena";
+import { startBattle } from "@/lib/actions/arena";
+import { fetchKnownGameNames } from "@/lib/actions/games";
+import { GameSelect } from "@/components/session/game-select";
 
 type StandaloneBattleSetupDialogProps = {
   open: boolean;
   onClose: () => void;
-  onStarted: () => void;
+  onStarted: (sessionId: string) => void;
 };
 
 export function StandaloneBattleSetupDialog({
@@ -18,6 +20,7 @@ export function StandaloneBattleSetupDialog({
   onStarted,
 }: StandaloneBattleSetupDialogProps) {
   const [gameName, setGameName] = useState("");
+  const [knownGames, setKnownGames] = useState<string[]>([]);
   const [nameInput, setNameInput] = useState("");
   const [participants, setParticipants] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
@@ -27,6 +30,7 @@ export function StandaloneBattleSetupDialog({
     setGameName("");
     setNameInput("");
     setParticipants([]);
+    void fetchKnownGameNames().then(setKnownGames);
   }, [open]);
 
   useEffect(() => {
@@ -68,7 +72,7 @@ export function StandaloneBattleSetupDialog({
       return;
     }
     startTransition(async () => {
-      const result = await startStandaloneBattle({
+      const result = await startBattle({
         gameName: gameName.trim(),
         participantNames: participants,
       });
@@ -77,7 +81,7 @@ export function StandaloneBattleSetupDialog({
         return;
       }
       toast.success("Сражение началось!");
-      onStarted();
+      if (result.sessionId) onStarted(result.sessionId);
       onClose();
     });
   };
@@ -101,7 +105,7 @@ export function StandaloneBattleSetupDialog({
       <div className="relative flex max-h-[min(90vh,720px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
         <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-6 py-4 sm:px-10">
           <h2 id="standalone-battle-setup-title" className="text-lg font-bold">
-            Сражение без лиги
+            Новое сражение
           </h2>
           <button
             type="button"
@@ -120,12 +124,13 @@ export function StandaloneBattleSetupDialog({
               <Gamepad2 className="h-4 w-4 text-violet-400" />
               Игра
             </p>
-            <input
-              type="text"
+            <GameSelect
+              games={knownGames}
+              onGamesChange={setKnownGames}
               value={gameName}
-              onChange={(e) => setGameName(e.target.value)}
-              placeholder="Например: Коднеймс"
-              className="w-full rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-violet-500 focus:outline-none"
+              onChange={setGameName}
+              disabled={pending}
+              placeholder="Найти или ввести игру…"
             />
           </section>
 

@@ -4,18 +4,14 @@ import { usePathname } from "next/navigation";
 import { AppMenuNav, buildAppMenuLinks } from "@/components/layout/app-menu-nav";
 import { shouldShowAppNav } from "@/lib/app-nav";
 
-type AppSidebarProps = {
-  leagueId: string | null;
-};
-
-export function AppSidebar({ leagueId }: AppSidebarProps) {
+export function AppSidebar() {
   const pathname = usePathname();
 
   if (!shouldShowAppNav(pathname)) {
     return null;
   }
 
-  const links = buildAppMenuLinks(pathname, leagueId);
+  const links = buildAppMenuLinks(pathname);
 
   return (
     <aside

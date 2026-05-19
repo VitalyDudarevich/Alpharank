@@ -1,12 +1,6 @@
 import type { MemberStats } from "@/lib/types";
 
-export function StatsTable({
-  stats,
-  showElo,
-}: {
-  stats: MemberStats[];
-  showElo: boolean;
-}) {
+export function StatsTable({ stats }: { stats: MemberStats[] }) {
   if (stats.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-zinc-500">
@@ -25,7 +19,6 @@ export function StatsTable({
             <th className="px-4 py-3 font-medium text-right">Победы</th>
             <th className="px-4 py-3 font-medium text-right">Игр</th>
             <th className="px-4 py-3 font-medium text-right">%</th>
-            {showElo && <th className="px-4 py-3 font-medium text-right">ELO</th>}
           </tr>
         </thead>
         <tbody>
@@ -47,11 +40,6 @@ export function StatsTable({
               <td className="px-4 py-3 text-right text-zinc-400">
                 {s.win_rate}%
               </td>
-              {showElo && (
-                <td className="px-4 py-3 text-right text-emerald-400">
-                  {s.elo ? Math.round(s.elo) : "—"}
-                </td>
-              )}
             </tr>
           ))}
         </tbody>

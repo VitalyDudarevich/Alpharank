@@ -7,13 +7,33 @@ import {
   type SessionScoreEvent,
 } from "@/lib/session-stats";
 
+function mapScoreRows(
+  rows: {
+    id: string;
+    winner_participant_id: string;
+    participant_ids: string[];
+    created_at: string;
+    created_by: string | null;
+    deleted_at: string | null;
+  }[]
+): SessionScoreEvent[] {
+  return rows.map((e) => ({
+    id: e.id,
+    winner_member_id: null,
+    winner_participant_id: e.winner_participant_id,
+    participant_ids: e.participant_ids,
+    game_id: null,
+    created_at: e.created_at,
+    created_by: e.created_by ?? "",
+    deleted_at: e.deleted_at,
+  }));
+}
+
 export function useSessionScoreEvents({
-  leagueId,
   sessionId,
   participantIds,
   initialEvents = [],
 }: {
-  leagueId: string;
   sessionId: string;
   participantIds: string[];
   initialEvents?: SessionScoreEvent[];
@@ -22,6 +42,30 @@ export function useSessionScoreEvents({
 
   useEffect(() => {
     setEvents(initialEvents);
+  }, [initialEvents]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    let cancelled = false;
+    const supabase = createClient();
+
+    void (async () => {
+      const { data, error } = await supabase
+        .from("score_events")
+        .select(
+          "id, winner_participant_id, participant_ids, created_at, created_by, deleted_at"
+        )
+        .eq("session_id", sessionId)
+        .order("created_at", { ascending: true });
+
+      if (cancelled || error) return;
+      setEvents(mapScoreRows(data ?? []));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [sessionId]);
 
   useEffect(() => {
@@ -79,8 +123,11 @@ export function useSessionScoreEvents({
     });
   }, []);
 
-  const removeEvent = useCallback((eventId: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+  const markEventDeleted = useCallback((eventId: string) => {
+    const deletedAt = new Date().toISOString();
+    setEvents((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, deleted_at: deletedAt } : e))
+    );
   }, []);
 
   const playerStats = useMemo(
@@ -88,5 +135,5 @@ export function useSessionScoreEvents({
     [events, participantIds]
   );
 
-  return { events, playerStats, appendEvent, removeEvent };
+  return { events, playerStats, appendEvent, markEventDeleted };
 }
