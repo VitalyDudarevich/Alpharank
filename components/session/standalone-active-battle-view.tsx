@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { endBattle } from "@/lib/actions/arena";
 import { DeferredArenaWinsChart } from "./deferred-arena-wins-chart";
+import { BattleReadonlyScoreboard } from "./battle-readonly-scoreboard";
+import { BattleShareButton } from "./battle-share-button";
 import { StandaloneBattleScoreboard } from "./standalone-battle-scoreboard";
 import { SessionEventLog } from "./session-event-log";
 import { useSessionScoreEvents } from "./use-session-score-events";
@@ -22,10 +24,11 @@ type StandaloneActiveBattleViewProps = {
   participants: BattleParticipant[];
   sessionScoreEvents: SessionScoreEvent[];
   actorNames: Record<string, string>;
-  currentUserId: string;
+  currentUserId: string | null;
   startedAt: string | null;
+  readOnly?: boolean;
   onBack: () => void;
-  onEnded: () => void;
+  onEnded?: () => void;
 };
 
 function formatBattleDuration(ms: number): string {
@@ -58,6 +61,7 @@ export function StandaloneActiveBattleView({
   actorNames,
   currentUserId,
   startedAt,
+  readOnly = false,
   onBack,
   onEnded,
 }: StandaloneActiveBattleViewProps) {
@@ -99,7 +103,7 @@ export function StandaloneActiveBattleView({
         sessionEvents,
         memberNames,
         actorNames,
-        currentUserId
+        currentUserId ?? ""
       ),
     [sessionEvents, memberNames, actorNames, currentUserId]
   );
@@ -111,6 +115,7 @@ export function StandaloneActiveBattleView({
     : 0;
 
   const handleEnd = () => {
+    if (readOnly || !onEnded) return;
     startEndTransition(async () => {
       const result = await endBattle(sessionId);
       if (result.error) {
@@ -124,14 +129,17 @@ export function StandaloneActiveBattleView({
 
   return (
     <div className="space-y-6">
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-sm text-violet-400 hover:text-violet-300"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        К арене
-      </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 text-sm text-violet-400 hover:text-violet-300"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          К арене
+        </button>
+        <BattleShareButton sessionId={sessionId} className="h-9 gap-2 px-3 text-sm" />
+      </div>
       <div className="rounded-2xl border border-violet-500/40 bg-violet-600/10 px-4 py-4 text-center">
         <h2 className="text-2xl font-bold tracking-tight text-violet-50 sm:text-3xl">
           {gameName}
@@ -170,14 +178,21 @@ export function StandaloneActiveBattleView({
         <div className="border-b border-zinc-800 px-4 py-3">
           <h2 className="text-sm font-medium text-zinc-400">Очки</h2>
         </div>
-        <StandaloneBattleScoreboard
-          sessionId={sessionId}
-          gameName={gameName}
-          participants={participants}
-          currentUserId={currentUserId}
-          winCounts={winCounts}
-          onEventAdded={appendEvent}
-        />
+        {readOnly ? (
+          <BattleReadonlyScoreboard
+            participants={participants}
+            winCounts={winCounts}
+          />
+        ) : (
+          <StandaloneBattleScoreboard
+            sessionId={sessionId}
+            gameName={gameName}
+            participants={participants}
+            currentUserId={currentUserId!}
+            winCounts={winCounts}
+            onEventAdded={appendEvent}
+          />
+        )}
       </section>
 
       <section>
@@ -201,20 +216,23 @@ export function StandaloneActiveBattleView({
         </p>
         <SessionEventLog
           events={logEvents}
-          currentUserId={currentUserId}
-          onEventUndone={markEventDeleted}
+          currentUserId={currentUserId ?? ""}
+          readOnly={readOnly}
+          onEventUndone={readOnly ? undefined : markEventDeleted}
         />
       </section>
 
-      <Button
-        type="button"
-        variant="outline"
-        className="h-12 w-full border-zinc-600 text-zinc-200"
-        disabled={ending}
-        onClick={handleEnd}
-      >
-        {ending ? "Завершение…" : "Завершить сражение"}
-      </Button>
+      {!readOnly && (
+        <Button
+          type="button"
+          variant="outline"
+          className="h-12 w-full border-zinc-600 text-zinc-200"
+          disabled={ending}
+          onClick={handleEnd}
+        >
+          {ending ? "Завершение…" : "Завершить сражение"}
+        </Button>
+      )}
     </div>
   );
 }

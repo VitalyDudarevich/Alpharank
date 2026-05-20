@@ -3,14 +3,24 @@ import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/profile";
 import { ArenaPageClient } from "@/components/arena/arena-page-client";
 
-export default async function HomePage() {
+type HomePageProps = {
+  searchParams: Promise<{ battle?: string }>;
+};
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const { battle: initialBattleId } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    return (
+      <ArenaPageClient
+        userId={null}
+        initialBattleId={initialBattleId?.trim() || null}
+      />
+    );
   }
 
   const profile = await getProfile(supabase, user.id);
@@ -20,5 +30,10 @@ export default async function HomePage() {
     redirect("/profile?redirect=/");
   }
 
-  return <ArenaPageClient userId={user.id} />;
+  return (
+    <ArenaPageClient
+      userId={user.id}
+      initialBattleId={initialBattleId?.trim() || null}
+    />
+  );
 }

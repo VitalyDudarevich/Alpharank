@@ -5,6 +5,7 @@ import { format, intervalToDuration } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ArrowLeft } from "lucide-react";
 import { fetchBattleDetail } from "@/lib/actions/arena";
+import { BattleShareButton } from "@/components/session/battle-share-button";
 import { winCountsFromEvents } from "@/lib/arena-games";
 import { buildSessionLogEvents } from "@/lib/session-log";
 import { BattleReadonlyScoreboard } from "./battle-readonly-scoreboard";
@@ -15,7 +16,7 @@ import type { SessionScoreEvent } from "@/lib/session-stats";
 
 type BattleDetailViewProps = {
   sessionId: string;
-  currentUserId: string;
+  currentUserId: string | null;
   onBack: () => void;
 };
 
@@ -103,7 +104,7 @@ export function BattleDetailView({
         sessionEvents,
         memberNames,
         actorNames,
-        currentUserId
+        currentUserId ?? ""
       ),
     [sessionEvents, memberNames, actorNames, currentUserId]
   );
@@ -134,14 +135,17 @@ export function BattleDetailView({
 
   return (
     <div className="space-y-6">
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Назад к арене
-      </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Назад к арене
+        </button>
+        <BattleShareButton sessionId={sessionId} className="h-9 gap-2 px-3 text-sm" />
+      </div>
 
       <div className="rounded-2xl border border-zinc-700 bg-zinc-900/80 px-4 py-4 text-center">
         <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -202,7 +206,7 @@ export function BattleDetailView({
         </h2>
         <SessionEventLog
           events={logEvents}
-          currentUserId={currentUserId}
+          currentUserId={currentUserId ?? ""}
           readOnly
         />
       </section>

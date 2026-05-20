@@ -39,6 +39,7 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/auth");
   const isPublic =
     isAuthPage ||
+    request.nextUrl.pathname === "/" ||
     request.nextUrl.pathname.startsWith("/join");
 
   if (!user && !isPublic) {

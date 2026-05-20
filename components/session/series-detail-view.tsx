@@ -18,7 +18,7 @@ import type { BattleParticipant } from "@/lib/types";
 
 type SeriesDetailViewProps = {
   series: ArenaHistorySeries;
-  currentUserId: string;
+  currentUserId: string | null;
   onBack: () => void;
   onSelectBattle: (sessionId: string) => void;
 };
@@ -115,7 +115,7 @@ export function SeriesDetailView({
 
   const logEvents = useMemo(
     () =>
-      buildSessionLogEvents(events, memberNames, actorNames, currentUserId),
+      buildSessionLogEvents(events, memberNames, actorNames, currentUserId ?? ""),
     [events, memberNames, actorNames, currentUserId]
   );
 
@@ -214,7 +214,7 @@ export function SeriesDetailView({
         </h2>
         <SessionEventLog
           events={logEvents}
-          currentUserId={currentUserId}
+          currentUserId={currentUserId ?? ""}
           readOnly
         />
       </section>

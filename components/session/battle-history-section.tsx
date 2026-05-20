@@ -25,7 +25,7 @@ export type BattleHistoryInfiniteScroll = {
 
 type BattleHistorySectionProps = {
   history: ArenaHistoryItem[];
-  currentUserId: string;
+  currentUserId: string | null;
   onSelect: (sessionId: string) => void;
   infiniteScroll?: BattleHistoryInfiniteScroll;
   onSeriesOpenChange?: (open: boolean) => void;

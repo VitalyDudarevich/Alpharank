@@ -46,6 +46,7 @@ export type ActiveBattleState = {
   id: string;
   game_name: string;
   started_at: string | null;
+  created_by: string;
   participants: BattleParticipant[];
 };
 
@@ -72,10 +73,6 @@ export type BattleDetail = {
 
 export async function fetchBattleDetail(sessionId: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Не авторизован" as const };
 
   const { data: session } = await supabase
     .from("sessions")
@@ -83,7 +80,7 @@ export async function fetchBattleDetail(sessionId: string) {
     .eq("id", sessionId)
     .single();
 
-  if (!session || session.created_by !== user.id) {
+  if (!session) {
     return { error: "Сражение не найдено" as const };
   }
 
@@ -198,10 +195,6 @@ function mapSessionRowsToHistoryItems(
 
 export async function fetchActiveBattle(sessionId: string) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Не авторизован" as const };
 
   const { data: session } = await supabase
     .from("sessions")
@@ -209,7 +202,7 @@ export async function fetchActiveBattle(sessionId: string) {
     .eq("id", sessionId)
     .single();
 
-  if (!session || session.created_by !== user.id) {
+  if (!session) {
     return { error: "Сражение не найдено" as const };
   }
   if (session.status !== "active") {
@@ -230,13 +223,13 @@ export async function fetchActiveBattle(sessionId: string) {
     id: session.id,
     game_name: session.game_name?.trim() || "Игра",
     started_at: session.started_at,
+    created_by: session.created_by,
     participants: parts as BattleParticipant[],
   } satisfies ActiveBattleState;
 }
 
-async function fetchArenaBattlesPageForUser(
+async function fetchArenaBattlesPage(
   supabase: SupabaseClient,
-  userId: string,
   endedOffset: number,
   endedLimit: number
 ): Promise<ArenaBattlesPage | { error: string }> {
@@ -245,18 +238,15 @@ async function fetchArenaBattlesPageForUser(
       supabase
         .from("sessions")
         .select("id, game_name, session_date, started_at, ended_at, status")
-        .eq("created_by", userId)
         .eq("status", "active")
         .order("started_at", { ascending: false, nullsFirst: false }),
       supabase
         .from("sessions")
         .select("id", { count: "exact", head: true })
-        .eq("created_by", userId)
         .eq("status", "ended"),
       supabase
         .from("sessions")
         .select("id, game_name, session_date, started_at, ended_at, status")
-        .eq("created_by", userId)
         .eq("status", "ended")
         .order("ended_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
@@ -282,18 +272,13 @@ async function fetchArenaBattlesPageForUser(
 
 export async function fetchArenaState() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Не авторизован" as const };
 
-  const page = await fetchArenaBattlesPageForUser(
+  const page = await fetchArenaBattlesPage(
     supabase,
-    user.id,
     0,
     ARENA_BATTLES_PAGE_SIZE
   );
-  if ("error" in page) return { error: page.error as "Не авторизован" };
+  if ("error" in page) return { error: page.error };
 
   return {
     battles: page.battles,
@@ -305,37 +290,30 @@ export async function fetchArenaState() {
 
 export async function fetchMoreArenaBattles(endedOffset: number) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Не авторизован" as const };
 
-  const [{ count: endedCount }, { data: endedRows }] = await Promise.all([
-    supabase
-      .from("sessions")
-      .select("id", { count: "exact", head: true })
-      .eq("created_by", user.id)
-      .eq("status", "ended"),
-    supabase
-      .from("sessions")
-      .select("id, game_name, session_date, started_at, ended_at, status")
-      .eq("created_by", user.id)
-      .eq("status", "ended")
-      .order("ended_at", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false })
-      .range(endedOffset, endedOffset + ARENA_BATTLES_PAGE_SIZE - 1),
-  ]);
+  const [{ count: endedCount }, { data: endedRows }, { count: activeCount }] =
+    await Promise.all([
+      supabase
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "ended"),
+      supabase
+        .from("sessions")
+        .select("id, game_name, session_date, started_at, ended_at, status")
+        .eq("status", "ended")
+        .order("ended_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .range(endedOffset, endedOffset + ARENA_BATTLES_PAGE_SIZE - 1),
+      supabase
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "active"),
+    ]);
 
   const ended = (endedRows ?? []) as SessionRow[];
   const battles = await enrichSessionRows(supabase, ended);
   const totalEnded = endedCount ?? 0;
   const nextEndedOffset = endedOffset + ended.length;
-
-  const { count: activeCount } = await supabase
-    .from("sessions")
-    .select("id", { count: "exact", head: true })
-    .eq("created_by", user.id)
-    .eq("status", "active");
 
   return {
     battles,
@@ -356,10 +334,6 @@ export type SeriesDetail = {
 
 export async function fetchSeriesDetail(sessionIds: string[]) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Не авторизован" as const };
 
   const ids = [...new Set(sessionIds)].filter(Boolean);
   if (ids.length === 0) {
@@ -371,7 +345,7 @@ export async function fetchSeriesDetail(sessionIds: string[]) {
     .select("id, game_name, created_by")
     .in("id", ids);
 
-  if (!sessions?.length || sessions.some((s) => s.created_by !== user.id)) {
+  if (!sessions?.length) {
     return { error: "Серия не найдена" as const };
   }
 

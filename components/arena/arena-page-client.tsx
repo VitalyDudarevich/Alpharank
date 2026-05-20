@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Plus, Swords } from "lucide-react";
+import { LogIn, Plus, Swords } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   fetchActiveBattle,
@@ -26,11 +28,22 @@ import {
   appPageContentClass,
 } from "@/lib/layout-page";
 
-export function ArenaPageClient({ userId }: { userId: string }) {
+type ArenaPageClientProps = {
+  userId: string | null;
+  initialBattleId?: string | null;
+};
+
+export function ArenaPageClient({
+  userId,
+  initialBattleId = null,
+}: ArenaPageClientProps) {
+  const isGuest = userId === null;
+  const router = useRouter();
   const [ready, setReady] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [battles, setBattles] = useState<ArenaHistoryItem[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [battleOwnerId, setBattleOwnerId] = useState<string | null>(null);
 
   const [sessionId, setSessionId] = useState("");
   const [gameName, setGameName] = useState("");
@@ -47,53 +60,61 @@ export function ArenaPageClient({ userId }: { userId: string }) {
   const [loadingMoreBattles, setLoadingMoreBattles] = useState(false);
   const [listResetKey, setListResetKey] = useState(0);
   const [seriesOpen, setSeriesOpen] = useState(false);
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false);
   const activeSessionIdRef = useRef<string | null>(null);
   activeSessionIdRef.current = activeSessionId;
 
-  const loadSessionEvents = useCallback(
-    async (sid: string) => {
-      const supabase = createClient();
-      const { data: events } = await supabase
-        .from("score_events")
-        .select(
-          "id, winner_participant_id, participant_ids, created_at, created_by, deleted_at"
-        )
-        .eq("session_id", sid)
-        .order("created_at", { ascending: true });
-
-      const actorIds = [
-        ...new Set(
-          (events ?? [])
-            .map((e) => e.created_by)
-            .filter((id): id is string => !!id)
-        ),
-      ];
-      const names: Record<string, string> = {};
-      if (actorIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, display_name")
-          .in("id", actorIds);
-        for (const p of profiles ?? []) {
-          names[p.id] = p.display_name;
-        }
-      }
-      setActorNames(names);
-
-      const scoreEvents: SessionScoreEvent[] = (events ?? []).map((e) => ({
-        id: e.id,
-        winner_member_id: null,
-        winner_participant_id: e.winner_participant_id,
-        participant_ids: e.participant_ids,
-        game_id: null,
-        created_at: e.created_at,
-        created_by: e.created_by,
-        deleted_at: e.deleted_at,
-      }));
-      setSessionScoreEvents(scoreEvents);
+  const syncBattleUrl = useCallback(
+    (id: string | null) => {
+      router.replace(
+        id ? `/?battle=${encodeURIComponent(id)}` : "/",
+        { scroll: false }
+      );
     },
-    []
+    [router]
   );
+
+  const loadSessionEvents = useCallback(async (sid: string) => {
+    const supabase = createClient();
+    const { data: events } = await supabase
+      .from("score_events")
+      .select(
+        "id, winner_participant_id, participant_ids, created_at, created_by, deleted_at"
+      )
+      .eq("session_id", sid)
+      .order("created_at", { ascending: true });
+
+    const actorIds = [
+      ...new Set(
+        (events ?? [])
+          .map((e) => e.created_by)
+          .filter((id): id is string => !!id)
+      ),
+    ];
+    const names: Record<string, string> = {};
+    if (actorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", actorIds);
+      for (const p of profiles ?? []) {
+        names[p.id] = p.display_name;
+      }
+    }
+    setActorNames(names);
+
+    const scoreEvents: SessionScoreEvent[] = (events ?? []).map((e) => ({
+      id: e.id,
+      winner_member_id: null,
+      winner_participant_id: e.winner_participant_id,
+      participant_ids: e.participant_ids,
+      game_id: null,
+      created_at: e.created_at,
+      created_by: e.created_by,
+      deleted_at: e.deleted_at,
+    }));
+    setSessionScoreEvents(scoreEvents);
+  }, []);
 
   const openActiveBattle = useCallback(
     async (sid: string) => {
@@ -105,10 +126,13 @@ export function ArenaPageClient({ userId }: { userId: string }) {
       setGameName(battle.game_name);
       setParticipants(battle.participants);
       setStartedAt(battle.started_at);
+      setBattleOwnerId(battle.created_by);
       setActiveSessionId(battle.id);
+      setDetailSessionId(null);
+      syncBattleUrl(sid);
       return true;
     },
-    [loadSessionEvents]
+    [loadSessionEvents, syncBattleUrl]
   );
 
   const applyBattlesPage = useCallback(
@@ -163,7 +187,7 @@ export function ArenaPageClient({ userId }: { userId: string }) {
     applyBattlesPage(arena);
 
     const currentActiveId = activeSessionIdRef.current;
-    if (currentActiveId) {
+    if (currentActiveId && userId) {
       const stillActive = arena.battles.some(
         (b) => b.id === currentActiveId && b.status === "active"
       );
@@ -171,16 +195,18 @@ export function ArenaPageClient({ userId }: { userId: string }) {
         await openActiveBattle(currentActiveId);
       } else {
         setActiveSessionId(null);
+        setBattleOwnerId(null);
       }
     }
 
     setReady(true);
-  }, [applyBattlesPage, openActiveBattle]);
+  }, [applyBattlesPage, openActiveBattle, userId]);
 
   useEffect(() => {
     setReady(false);
+    setDeepLinkHandled(false);
     void reloadArena();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- только при монтировании
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount
   }, []);
 
   const handleSelectBattle = useCallback(
@@ -190,12 +216,38 @@ export function ArenaPageClient({ userId }: { userId: string }) {
         await openActiveBattle(id);
         return;
       }
+      setActiveSessionId(null);
+      setBattleOwnerId(null);
       setDetailSessionId(id);
+      syncBattleUrl(id);
     },
-    [battles, openActiveBattle]
+    [battles, openActiveBattle, syncBattleUrl]
   );
 
+  useEffect(() => {
+    if (!ready || deepLinkHandled || !initialBattleId) return;
+    setDeepLinkHandled(true);
+    void handleSelectBattle(initialBattleId);
+  }, [ready, deepLinkHandled, initialBattleId, handleSelectBattle]);
+
+  const canEditActive =
+    !!userId && !!battleOwnerId && battleOwnerId === userId;
+
+  const backToArena = useCallback(() => {
+    setActiveSessionId(null);
+    setDetailSessionId(null);
+    setBattleOwnerId(null);
+    syncBattleUrl(null);
+    void refreshBattlesList();
+  }, [refreshBattlesList, syncBattleUrl]);
+
   const activeCount = battles.filter((b) => b.status === "active").length;
+
+  const loginHref = useMemo(() => {
+    const id = detailSessionId || activeSessionId;
+    const dest = id ? `/?battle=${encodeURIComponent(id)}` : "/";
+    return `/login?redirect=${encodeURIComponent(dest)}`;
+  }, [detailSessionId, activeSessionId]);
 
   if (!ready) {
     return (
@@ -210,26 +262,35 @@ export function ArenaPageClient({ userId }: { userId: string }) {
 
   const showHome = !activeSessionId && !detailSessionId;
   const showActive = activeSessionId && sessionId && !detailSessionId;
-  const showArenaAddBattle = showHome && !seriesOpen;
+  const showBottomBar = showHome && !seriesOpen;
+  const showArenaAddBattle = showBottomBar && !isGuest;
+  const showArenaLogin = showBottomBar && isGuest;
+
+  const guestBottomClass =
+    "max-md:bottom-[calc(1rem+env(safe-area-inset-bottom))]";
 
   return (
     <main
       className={cn(
         appPageClass,
-        showArenaAddBattle && appBottomActionClearanceClass,
+        showBottomBar &&
+          (isGuest ? "max-md:pb-28" : appBottomActionClearanceClass),
       )}
     >
       <div className={cn(appPageContentClass, appMainClass)}>
         <ArenaPageHeader />
 
+        {isGuest && showHome && (
+          <p className="mb-4 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-center text-sm text-zinc-400">
+            Режим просмотра. Войдите, чтобы создавать сражения и вести счёт.
+          </p>
+        )}
+
         {detailSessionId && (
           <BattleDetailView
             sessionId={detailSessionId}
             currentUserId={userId}
-            onBack={() => {
-              setDetailSessionId(null);
-              void refreshBattlesList();
-            }}
+            onBack={backToArena}
           />
         )}
 
@@ -242,15 +303,19 @@ export function ArenaPageClient({ userId }: { userId: string }) {
             actorNames={actorNames}
             currentUserId={userId}
             startedAt={startedAt}
-            onBack={() => {
-              setActiveSessionId(null);
-              void refreshBattlesList();
-            }}
-            onEnded={() => {
-              activeSessionIdRef.current = null;
-              setActiveSessionId(null);
-              void reloadArena();
-            }}
+            readOnly={!canEditActive}
+            onBack={backToArena}
+            onEnded={
+              canEditActive
+                ? () => {
+                    activeSessionIdRef.current = null;
+                    setActiveSessionId(null);
+                    setBattleOwnerId(null);
+                    syncBattleUrl(null);
+                    void reloadArena();
+                  }
+                : undefined
+            }
           />
         )}
 
@@ -263,7 +328,9 @@ export function ArenaPageClient({ userId }: { userId: string }) {
                   Нет сражений
                 </p>
                 <p className="text-sm text-zinc-500">
-                  Создайте сражение — можно вести несколько серий параллельно
+                  {isGuest
+                    ? "Когда появятся сражения, они будут видны здесь."
+                    : "Создайте сражение — можно вести несколько серий параллельно"}
                 </p>
               </div>
             ) : (
@@ -311,19 +378,39 @@ export function ArenaPageClient({ userId }: { userId: string }) {
             </Button>
           </div>
         )}
+
+        {showArenaLogin && (
+          <div
+            className={cn(
+              "z-40 mt-6 bg-gradient-to-t from-zinc-950 from-40% via-zinc-950/95 to-transparent pt-6",
+              "max-md:fixed max-md:inset-x-0 max-md:mx-auto max-md:mt-0 max-md:max-w-lg max-md:px-4 max-md:pb-3 max-md:pt-4",
+              guestBottomClass,
+              "md:sticky md:bottom-0 md:pb-4",
+            )}
+          >
+            <Link
+              href={loginHref}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 text-base font-semibold text-white shadow-lg shadow-violet-950/50 transition-colors hover:bg-violet-500"
+            >
+              <LogIn className="h-5 w-5" />
+              Войти
+            </Link>
+          </div>
+        )}
       </div>
 
-      <StandaloneBattleSetupDialog
-        open={setupOpen}
-        onClose={() => setSetupOpen(false)}
-        onStarted={(newSessionId) => {
-          void (async () => {
-            await reloadArena();
-            await openActiveBattle(newSessionId);
-          })();
-        }}
-      />
-
+      {!isGuest && (
+        <StandaloneBattleSetupDialog
+          open={setupOpen}
+          onClose={() => setSetupOpen(false)}
+          onStarted={(newSessionId) => {
+            void (async () => {
+              await reloadArena();
+              await openActiveBattle(newSessionId);
+            })();
+          }}
+        />
+      )}
     </main>
   );
 }

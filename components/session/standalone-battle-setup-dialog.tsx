@@ -91,7 +91,7 @@ export function StandaloneBattleSetupDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-end justify-center p-4 sm:items-center sm:p-8"
+      className="fixed inset-0 z-[10000] flex items-end justify-center max-md:p-0 sm:items-center sm:p-8"
       role="dialog"
       aria-modal="true"
       aria-labelledby="standalone-battle-setup-title"
@@ -103,8 +103,8 @@ export function StandaloneBattleSetupDialog({
         disabled={pending}
         onClick={() => !pending && onClose()}
       />
-      <div className="relative flex max-h-[min(90vh,720px)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
-        <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-6 py-4 sm:px-10">
+      <div className="relative flex h-[min(92dvh,720px)] w-full max-w-md flex-col overflow-hidden rounded-t-2xl border border-zinc-800 bg-zinc-900 shadow-2xl max-md:max-h-none sm:h-auto sm:max-h-[min(90vh,720px)] sm:rounded-2xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-zinc-800 px-5 py-3 sm:px-10 sm:py-4">
           <h2 id="standalone-battle-setup-title" className="text-lg font-bold">
             Новое сражение
           </h2>
@@ -119,8 +119,8 @@ export function StandaloneBattleSetupDialog({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-4 sm:px-10">
-          <section className="space-y-2">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-5 py-3 sm:px-10 sm:py-4">
+          <section className="shrink-0 space-y-2 pb-4">
             <p className="flex items-center gap-2 text-sm font-medium text-zinc-400">
               <Gamepad2 className="h-4 w-4 text-violet-400" />
               Игра
@@ -135,25 +135,28 @@ export function StandaloneBattleSetupDialog({
             />
           </section>
 
-          <section className="space-y-2">
-            <p className="flex items-center gap-2 text-sm font-medium text-zinc-400">
+          <section className="flex min-h-0 flex-1 flex-col space-y-2">
+            <p className="flex shrink-0 items-center gap-2 text-sm font-medium text-zinc-400">
               <Users className="h-4 w-4 text-violet-400" />
               Участники
               <span className="text-zinc-600">({participants.length})</span>
             </p>
-            <p className="text-xs text-zinc-600">
+            <p className="shrink-0 text-xs text-zinc-600">
               Выберите из списка или введите новое имя. Минимум 2 человека.
             </p>
-            <ParticipantPicker
-              knownNames={knownFriends}
-              onKnownNamesChange={setKnownFriends}
-              selected={participants}
-              onAdd={addParticipant}
-              disabled={pending}
-              placeholder="Найти или ввести имя друга…"
-            />
+            <div className="flex min-h-0 flex-1 flex-col">
+              <ParticipantPicker
+                variant="sheet"
+                knownNames={knownFriends}
+                onKnownNamesChange={setKnownFriends}
+                selected={participants}
+                onAdd={addParticipant}
+                disabled={pending}
+                placeholder="Найти или ввести имя друга…"
+              />
+            </div>
             {participants.length > 0 && (
-              <ul className="flex flex-wrap gap-2">
+              <ul className="flex max-h-24 shrink-0 flex-wrap gap-2 overflow-y-auto pt-1">
                 {participants.map((name) => (
                   <li key={name}>
                     <button
@@ -171,7 +174,7 @@ export function StandaloneBattleSetupDialog({
           </section>
         </div>
 
-        <div className="shrink-0 border-t border-zinc-800 p-6 sm:p-8">
+        <div className="shrink-0 border-t border-zinc-800 p-4 sm:p-8">
           <Button
             type="button"
             className="h-12 w-full text-base font-semibold"

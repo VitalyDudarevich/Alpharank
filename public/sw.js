@@ -1,5 +1,5 @@
 /* Сгенерировано scripts/generate-sw.mjs — не редактировать вручную */
-const SW_VERSION = "9f5f0462a5f9";
+const SW_VERSION = "d1ee7e96b6d4";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(Promise.resolve());

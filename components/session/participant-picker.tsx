@@ -13,6 +13,8 @@ type ParticipantPickerProps = {
   onAdd: (name: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  /** В диалоге: список в потоке и выше, чтобы видеть больше имён и кнопку добавления. */
+  variant?: "dropdown" | "sheet";
 };
 
 export function ParticipantPicker({
@@ -22,7 +24,9 @@ export function ParticipantPicker({
   onAdd,
   disabled,
   placeholder = "Найти или ввести имя…",
+  variant = "dropdown",
 }: ParticipantPickerProps) {
+  const isSheet = variant === "sheet";
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -56,6 +60,10 @@ export function ParticipantPicker({
   useEffect(() => {
     if (!open) setQuery("");
   }, [open]);
+
+  useEffect(() => {
+    if (isSheet) setOpen(true);
+  }, [isSheet]);
 
   useEffect(() => {
     if (!open) return;
@@ -106,10 +114,13 @@ export function ParticipantPicker({
   };
 
   return (
-    <div ref={rootRef} className="relative">
+    <div
+      ref={rootRef}
+      className={cn("relative", isSheet && open && "flex min-h-0 flex-1 flex-col")}
+    >
       <div
         className={cn(
-          "flex h-12 items-center gap-1 rounded-xl border bg-zinc-800/50 pr-1 transition-colors",
+          "flex h-12 shrink-0 items-center gap-1 rounded-xl border bg-zinc-800/50 pr-1 transition-colors",
           open
             ? "border-violet-500 ring-1 ring-violet-500/40"
             : "border-zinc-700 focus-within:border-violet-500 focus-within:ring-1 focus-within:ring-violet-500/40",
@@ -168,9 +179,21 @@ export function ParticipantPicker({
         <div
           id={listId}
           role="listbox"
-          className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 shadow-xl"
+          className={cn(
+            "overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 shadow-xl",
+            isSheet
+              ? "mt-2 flex min-h-0 flex-1 flex-col"
+              : "absolute left-0 right-0 top-full z-20 mt-1",
+          )}
         >
-          <ul className="max-h-48 overflow-y-auto py-1">
+          <ul
+            className={cn(
+              "overflow-y-auto py-1",
+              isSheet
+                ? "min-h-0 flex-1 max-md:min-h-[12rem]"
+                : "max-h-48 sm:max-h-56",
+            )}
+          >
             {filtered.length > 0 ? (
               filtered.map((name) => (
                 <li key={name} role="option">
@@ -200,7 +223,7 @@ export function ParticipantPicker({
           </ul>
 
           {canAddNew && (
-            <div className="border-t border-zinc-800 p-2">
+            <div className="shrink-0 border-t border-zinc-800 p-2">
               <button
                 type="button"
                 disabled={disabled || pending}
