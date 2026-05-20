@@ -18,7 +18,13 @@ import { Button } from "@/components/ui/button";
 import type { BattleParticipant } from "@/lib/types";
 import type { SessionScoreEvent } from "@/lib/session-stats";
 import { ArenaPageHeader } from "@/components/layout/arena-page-header";
-import { appMainClass, appPageClass, appPageContentClass } from "@/lib/layout-page";
+import {
+  appAboveBottomNavClass,
+  appBottomActionClearanceClass,
+  appMainClass,
+  appPageClass,
+  appPageContentClass,
+} from "@/lib/layout-page";
 
 export function ArenaPageClient({ userId }: { userId: string }) {
   const [ready, setReady] = useState(false);
@@ -204,26 +210,17 @@ export function ArenaPageClient({ userId }: { userId: string }) {
 
   const showHome = !activeSessionId && !detailSessionId;
   const showActive = activeSessionId && sessionId && !detailSessionId;
-  const showCreateBattle = showHome && !seriesOpen;
+  const showArenaAddBattle = showHome && !seriesOpen;
 
   return (
-    <main className={cn(appPageClass, "pb-8")}>
+    <main
+      className={cn(
+        appPageClass,
+        showArenaAddBattle && appBottomActionClearanceClass,
+      )}
+    >
       <div className={cn(appPageContentClass, appMainClass)}>
-        <ArenaPageHeader
-          right={
-            showCreateBattle ? (
-              <Button
-                type="button"
-                size="sm"
-                className="shrink-0"
-                onClick={() => setSetupOpen(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Сражение
-              </Button>
-            ) : null
-          }
-        />
+        <ArenaPageHeader />
 
         {detailSessionId && (
           <BattleDetailView
@@ -265,17 +262,9 @@ export function ArenaPageClient({ userId }: { userId: string }) {
                 <p className="mb-2 font-medium text-zinc-200">
                   Нет сражений
                 </p>
-                <p className="mb-6 text-sm text-zinc-500">
+                <p className="text-sm text-zinc-500">
                   Создайте сражение — можно вести несколько серий параллельно
                 </p>
-                <Button
-                  type="button"
-                  size="lg"
-                  className="w-full max-w-xs"
-                  onClick={() => setSetupOpen(true)}
-                >
-                  Создать сражение
-                </Button>
               </div>
             ) : (
               <section>
@@ -299,6 +288,27 @@ export function ArenaPageClient({ userId }: { userId: string }) {
                 />
               </section>
             )}
+          </div>
+        )}
+
+        {showArenaAddBattle && (
+          <div
+            className={cn(
+              "z-40 mt-6 bg-gradient-to-t from-zinc-950 from-40% via-zinc-950/95 to-transparent pt-6",
+              "max-md:fixed max-md:inset-x-0 max-md:mx-auto max-md:mt-0 max-md:max-w-lg max-md:px-4 max-md:pb-3 max-md:pt-4",
+              appAboveBottomNavClass,
+              "md:sticky md:bottom-0 md:pb-4",
+            )}
+          >
+            <Button
+              type="button"
+              size="lg"
+              className="h-12 w-full shadow-lg shadow-violet-950/50"
+              onClick={() => setSetupOpen(true)}
+            >
+              <Plus className="h-5 w-5" />
+              Добавить сражение
+            </Button>
           </div>
         )}
       </div>

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { ARENA_BATTLES_PAGE_SIZE } from "@/lib/arena-battles-page";
+import { ensureFriendsInCatalog } from "@/lib/actions/friends";
 import {
   normalizeSeriesScoreEvents,
   seriesMemberIds,
@@ -506,6 +507,8 @@ export async function startBattle(params: {
       sort_order: maxOrder + 1,
     });
   }
+
+  await ensureFriendsInCatalog(names);
 
   revalidatePath("/");
   return { success: true, sessionId: session.id };

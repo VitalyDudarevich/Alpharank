@@ -83,6 +83,7 @@ export function usePwaUpdate() {
         });
 
         setStatus(registration.waiting ? "available" : "idle");
+        void registration.update();
       })
       .catch(() => {
         if (!cancelled) setStatus("unsupported");

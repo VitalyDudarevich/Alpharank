@@ -9,7 +9,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/lib/actions/auth";
-import { PwaUpdateControls } from "@/components/pwa/pwa-update-controls";
 import { cn } from "@/lib/utils";
 
 export type AppMenuLink = {
@@ -74,8 +73,7 @@ export function AppMenuNav({ links, onNavigate, className }: AppMenuNavProps) {
         })}
       </ul>
 
-      <div className="shrink-0 space-y-3 p-4">
-        <PwaUpdateControls variant="menu" onAction={onNavigate} />
+      <div className="shrink-0 p-4">
         <form action={signOut}>
           <button
             type="submit"

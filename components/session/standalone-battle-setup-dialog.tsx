@@ -5,8 +5,10 @@ import { Gamepad2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { startBattle } from "@/lib/actions/arena";
+import { fetchKnownFriendNames } from "@/lib/actions/friends";
 import { fetchKnownGameNames } from "@/lib/actions/games";
 import { GameSelect } from "@/components/session/game-select";
+import { ParticipantPicker } from "@/components/session/participant-picker";
 
 type StandaloneBattleSetupDialogProps = {
   open: boolean;
@@ -21,16 +23,18 @@ export function StandaloneBattleSetupDialog({
 }: StandaloneBattleSetupDialogProps) {
   const [gameName, setGameName] = useState("");
   const [knownGames, setKnownGames] = useState<string[]>([]);
-  const [nameInput, setNameInput] = useState("");
+  const [knownFriends, setKnownFriends] = useState<string[]>([]);
   const [participants, setParticipants] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!open) return;
     setGameName("");
-    setNameInput("");
     setParticipants([]);
-    void fetchKnownGameNames().then(setKnownGames);
+    void Promise.all([
+      fetchKnownGameNames().then(setKnownGames),
+      fetchKnownFriendNames().then(setKnownFriends),
+    ]);
   }, [open]);
 
   useEffect(() => {
@@ -47,17 +51,14 @@ export function StandaloneBattleSetupDialog({
     };
   }, [open, pending, onClose]);
 
-  const addParticipant = () => {
-    const name = nameInput.trim();
-    if (!name) return;
-    if (
-      participants.some((p) => p.toLowerCase() === name.toLowerCase())
-    ) {
+  const addParticipant = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (participants.some((p) => p.toLowerCase() === trimmed.toLowerCase())) {
       toast.error("Участник уже добавлен");
       return;
     }
-    setParticipants((prev) => [...prev, name]);
-    setNameInput("");
+    setParticipants((prev) => [...prev, trimmed]);
   };
 
   const removeParticipant = (name: string) => {
@@ -141,32 +142,16 @@ export function StandaloneBattleSetupDialog({
               <span className="text-zinc-600">({participants.length})</span>
             </p>
             <p className="text-xs text-zinc-600">
-              Введите имена и нажмите «Добавить». Минимум 2 человека.
+              Выберите из списка или введите новое имя. Минимум 2 человека.
             </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addParticipant();
-                  }
-                }}
-                placeholder="Имя участника"
-                className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-violet-500 focus:outline-none"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                className="shrink-0 border-zinc-600"
-                disabled={!nameInput.trim() || pending}
-                onClick={addParticipant}
-              >
-                Добавить
-              </Button>
-            </div>
+            <ParticipantPicker
+              knownNames={knownFriends}
+              onKnownNamesChange={setKnownFriends}
+              selected={participants}
+              onAdd={addParticipant}
+              disabled={pending}
+              placeholder="Найти или ввести имя друга…"
+            />
             {participants.length > 0 && (
               <ul className="flex flex-wrap gap-2">
                 {participants.map((name) => (
