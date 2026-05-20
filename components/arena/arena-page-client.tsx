@@ -43,7 +43,6 @@ export function ArenaPageClient({
   const [setupOpen, setSetupOpen] = useState(false);
   const [battles, setBattles] = useState<ArenaHistoryItem[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [battleOwnerId, setBattleOwnerId] = useState<string | null>(null);
 
   const [sessionId, setSessionId] = useState("");
   const [gameName, setGameName] = useState("");
@@ -62,6 +61,7 @@ export function ArenaPageClient({
   const [seriesOpen, setSeriesOpen] = useState(false);
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
   const activeSessionIdRef = useRef<string | null>(null);
+  const openActiveRequestRef = useRef(0);
   activeSessionIdRef.current = activeSessionId;
 
   const syncBattleUrl = useCallback(
@@ -118,15 +118,20 @@ export function ArenaPageClient({
 
   const openActiveBattle = useCallback(
     async (sid: string) => {
+      const requestId = ++openActiveRequestRef.current;
+      activeSessionIdRef.current = sid;
+
       const battle = await fetchActiveBattle(sid);
+      if (requestId !== openActiveRequestRef.current) return false;
       if ("error" in battle) return false;
 
       await loadSessionEvents(sid);
+      if (requestId !== openActiveRequestRef.current) return false;
+
       setSessionId(battle.id);
       setGameName(battle.game_name);
       setParticipants(battle.participants);
       setStartedAt(battle.started_at);
-      setBattleOwnerId(battle.created_by);
       setActiveSessionId(battle.id);
       setDetailSessionId(null);
       syncBattleUrl(sid);
@@ -195,7 +200,7 @@ export function ArenaPageClient({
         await openActiveBattle(currentActiveId);
       } else {
         setActiveSessionId(null);
-        setBattleOwnerId(null);
+        setSessionId("");
       }
     }
 
@@ -213,11 +218,13 @@ export function ArenaPageClient({
     async (id: string) => {
       const item = battles.find((b) => b.id === id);
       if (item?.status === "active") {
+        activeSessionIdRef.current = id;
+        setActiveSessionId(id);
         await openActiveBattle(id);
         return;
       }
       setActiveSessionId(null);
-      setBattleOwnerId(null);
+      setSessionId("");
       setDetailSessionId(id);
       syncBattleUrl(id);
     },
@@ -230,13 +237,20 @@ export function ArenaPageClient({
     void handleSelectBattle(initialBattleId);
   }, [ready, deepLinkHandled, initialBattleId, handleSelectBattle]);
 
-  const canEditActive =
-    !!userId && !!battleOwnerId && battleOwnerId === userId;
+  const detailBattle = detailSessionId
+    ? battles.find((b) => b.id === detailSessionId)
+    : undefined;
+  const canDeleteDetail =
+    !!userId &&
+    !!detailBattle &&
+    detailBattle.created_by === userId;
 
   const backToArena = useCallback(() => {
+    openActiveRequestRef.current += 1;
     setActiveSessionId(null);
     setDetailSessionId(null);
-    setBattleOwnerId(null);
+    setSessionId("");
+    activeSessionIdRef.current = null;
     syncBattleUrl(null);
     void refreshBattlesList();
   }, [refreshBattlesList, syncBattleUrl]);
@@ -261,7 +275,12 @@ export function ArenaPageClient({
   }
 
   const showHome = !activeSessionId && !detailSessionId;
-  const showActive = activeSessionId && sessionId && !detailSessionId;
+  const showActive = !!(activeSessionId && sessionId && !detailSessionId);
+  const canEditActive = !!userId && showActive;
+  const canDeleteActive =
+    !!userId &&
+    showActive &&
+    battles.find((b) => b.id === sessionId)?.created_by === userId;
   const showBottomBar = showHome && !seriesOpen;
   const showArenaAddBattle = showBottomBar && !isGuest;
   const showArenaLogin = showBottomBar && isGuest;
@@ -282,7 +301,14 @@ export function ArenaPageClient({
 
         {isGuest && showHome && (
           <p className="mb-4 rounded-xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-center text-sm text-zinc-400">
-            Режим просмотра. Войдите, чтобы создавать сражения и вести счёт.
+            Режим просмотра.{" "}
+            <Link
+              href={loginHref}
+              className="font-medium text-violet-400 underline decoration-violet-500/50 underline-offset-2 transition-colors hover:text-violet-300"
+            >
+              Войдите
+            </Link>
+            , чтобы создавать сражения и вести счёт.
           </p>
         )}
 
@@ -290,12 +316,23 @@ export function ArenaPageClient({
           <BattleDetailView
             sessionId={detailSessionId}
             currentUserId={userId}
+            canDelete={canDeleteDetail}
             onBack={backToArena}
+            onDeleted={
+              userId
+                ? () => {
+                    setDetailSessionId(null);
+                    syncBattleUrl(null);
+                    void reloadArena();
+                  }
+                : undefined
+            }
           />
         )}
 
         {showActive && (
           <StandaloneActiveBattleView
+            key={sessionId}
             sessionId={sessionId}
             gameName={gameName}
             participants={participants}
@@ -304,13 +341,25 @@ export function ArenaPageClient({
             currentUserId={userId}
             startedAt={startedAt}
             readOnly={!canEditActive}
+            canDelete={canDeleteActive}
             onBack={backToArena}
             onEnded={
               canEditActive
                 ? () => {
                     activeSessionIdRef.current = null;
                     setActiveSessionId(null);
-                    setBattleOwnerId(null);
+                    setSessionId("");
+                    syncBattleUrl(null);
+                    void reloadArena();
+                  }
+                : undefined
+            }
+            onDeleted={
+              canEditActive
+                ? () => {
+                    activeSessionIdRef.current = null;
+                    setActiveSessionId(null);
+                    setSessionId("");
                     syncBattleUrl(null);
                     void reloadArena();
                   }

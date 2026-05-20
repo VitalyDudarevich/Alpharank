@@ -36,7 +36,7 @@ export async function addWin(params: {
     .eq("id", sessionId)
     .single();
 
-  if (!session || session.created_by !== user.id) {
+  if (!session) {
     return { error: "Сражение не найдено" };
   }
   if (session.status !== "active") {

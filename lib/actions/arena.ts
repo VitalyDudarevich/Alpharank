@@ -20,6 +20,7 @@ type SessionRow = {
   started_at: string | null;
   ended_at: string | null;
   status: string;
+  created_by: string;
 };
 
 export type ArenaBattlesPage = {
@@ -40,6 +41,7 @@ export type ArenaHistoryItem = {
   /** Имена участников в порядке добавления в сражение */
   participant_names: string[];
   event_count: number;
+  created_by: string;
 };
 
 export type ActiveBattleState = {
@@ -58,6 +60,7 @@ export type BattleDetail = {
     started_at: string | null;
     ended_at: string | null;
     status: string;
+    created_by: string;
   };
   participants: BattleParticipant[];
   events: {
@@ -125,6 +128,7 @@ export async function fetchBattleDetail(sessionId: string) {
       started_at: session.started_at,
       ended_at: session.ended_at,
       status: session.status,
+      created_by: session.created_by,
     },
     participants: (participants ?? []) as BattleParticipant[],
     events: events ?? [],
@@ -189,6 +193,7 @@ function mapSessionRowsToHistoryItems(
       participant_count: names.length,
       participant_names: names,
       event_count: eventCounts[row.id] ?? 0,
+      created_by: row.created_by,
     };
   });
 }
@@ -237,7 +242,7 @@ async function fetchArenaBattlesPage(
     await Promise.all([
       supabase
         .from("sessions")
-        .select("id, game_name, session_date, started_at, ended_at, status")
+        .select("id, game_name, session_date, started_at, ended_at, status, created_by")
         .eq("status", "active")
         .order("started_at", { ascending: false, nullsFirst: false }),
       supabase
@@ -246,7 +251,7 @@ async function fetchArenaBattlesPage(
         .eq("status", "ended"),
       supabase
         .from("sessions")
-        .select("id, game_name, session_date, started_at, ended_at, status")
+        .select("id, game_name, session_date, started_at, ended_at, status, created_by")
         .eq("status", "ended")
         .order("ended_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
@@ -299,11 +304,11 @@ export async function fetchMoreArenaBattles(endedOffset: number) {
         .eq("status", "ended"),
       supabase
         .from("sessions")
-        .select("id, game_name, session_date, started_at, ended_at, status")
-        .eq("status", "ended")
-        .order("ended_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
-        .range(endedOffset, endedOffset + ARENA_BATTLES_PAGE_SIZE - 1),
+      .select("id, game_name, session_date, started_at, ended_at, status, created_by")
+      .eq("status", "ended")
+      .order("ended_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false })
+      .range(endedOffset, endedOffset + ARENA_BATTLES_PAGE_SIZE - 1),
       supabase
         .from("sessions")
         .select("id", { count: "exact", head: true })
@@ -501,7 +506,7 @@ export async function endBattle(sessionId: string) {
     .eq("id", sessionId)
     .single();
 
-  if (!session || session.created_by !== user.id) {
+  if (!session) {
     return { error: "Сражение не найдено" };
   }
   if (session.status !== "active") return { error: "Сражение уже завершено" };
@@ -510,7 +515,33 @@ export async function endBattle(sessionId: string) {
   const { error } = await supabase
     .from("sessions")
     .update({ status: "ended", ended_at: now })
-    .eq("id", sessionId);
+    .eq("id", sessionId)
+    .eq("status", "active");
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function deleteBattle(sessionId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Не авторизован" };
+
+  const { data: session } = await supabase
+    .from("sessions")
+    .select("id, created_by")
+    .eq("id", sessionId)
+    .single();
+
+  if (!session || session.created_by !== user.id) {
+    return { error: "Сражение не найдено" };
+  }
+
+  const { error } = await supabase.from("sessions").delete().eq("id", sessionId);
 
   if (error) return { error: error.message };
 

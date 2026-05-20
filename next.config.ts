@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/favicon.ico",
+        destination: "/favicon-32.png",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {
@@ -17,13 +26,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/favicon.ico",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=3600, must-revalidate" },
-        ],
-      },
-      {
-        source: "/icon.png",
+        source: "/favicon-:size.png",
         headers: [
           { key: "Cache-Control", value: "public, max-age=3600, must-revalidate" },
         ],

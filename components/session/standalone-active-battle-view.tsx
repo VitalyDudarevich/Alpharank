@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { endBattle } from "@/lib/actions/arena";
 import { DeferredArenaWinsChart } from "./deferred-arena-wins-chart";
 import { BattleReadonlyScoreboard } from "./battle-readonly-scoreboard";
-import { BattleShareButton } from "./battle-share-button";
+import { BattleActionsMenu } from "./battle-actions-menu";
 import { StandaloneBattleScoreboard } from "./standalone-battle-scoreboard";
 import { SessionEventLog } from "./session-event-log";
 import { useSessionScoreEvents } from "./use-session-score-events";
@@ -27,8 +27,10 @@ type StandaloneActiveBattleViewProps = {
   currentUserId: string | null;
   startedAt: string | null;
   readOnly?: boolean;
+  canDelete?: boolean;
   onBack: () => void;
   onEnded?: () => void;
+  onDeleted?: () => void;
 };
 
 function formatBattleDuration(ms: number): string {
@@ -62,8 +64,10 @@ export function StandaloneActiveBattleView({
   currentUserId,
   startedAt,
   readOnly = false,
+  canDelete = false,
   onBack,
   onEnded,
+  onDeleted,
 }: StandaloneActiveBattleViewProps) {
   const [ending, startEndTransition] = useTransition();
   const [now, setNow] = useState(() => Date.now());
@@ -138,7 +142,11 @@ export function StandaloneActiveBattleView({
           <ArrowLeft className="h-4 w-4" />
           К арене
         </button>
-        <BattleShareButton sessionId={sessionId} className="h-9 gap-2 px-3 text-sm" />
+        <BattleActionsMenu
+          sessionId={sessionId}
+          canDelete={canDelete}
+          onDeleted={onDeleted}
+        />
       </div>
       <div className="rounded-2xl border border-violet-500/40 bg-violet-600/10 px-4 py-4 text-center">
         <h2 className="text-2xl font-bold tracking-tight text-violet-50 sm:text-3xl">

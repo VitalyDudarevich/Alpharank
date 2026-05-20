@@ -2,7 +2,6 @@ import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import sharp from "sharp";
-import toIco from "to-ico";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -38,12 +37,12 @@ async function main() {
   writeFileSync(join(publicIconsDir, "icon-192.png"), icon192);
   writeFileSync(join(publicIconsDir, "icon-512.png"), icon512);
 
-  const faviconIco = await toIco([icon16, icon32, await pngBuffer(48)]);
-  writeFileSync(join(appDir, "favicon.ico"), faviconIco);
-  writeFileSync(join(root, "public", "favicon.ico"), faviconIco);
-  writeFileSync(join(root, "public", "icon.png"), icon512);
+  writeFileSync(join(root, "public", "favicon-16.png"), icon16);
+  writeFileSync(join(root, "public", "favicon-32.png"), icon32);
 
-  console.log("Icons generated: app/icon.png, app/favicon.ico, public/icons/*.png");
+  console.log(
+    "Icons generated: app/icon.png, public/favicon-16.png, public/favicon-32.png"
+  );
 }
 
 main().catch((err) => {

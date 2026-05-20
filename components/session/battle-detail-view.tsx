@@ -5,7 +5,7 @@ import { format, intervalToDuration } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ArrowLeft } from "lucide-react";
 import { fetchBattleDetail } from "@/lib/actions/arena";
-import { BattleShareButton } from "@/components/session/battle-share-button";
+import { BattleActionsMenu } from "@/components/session/battle-actions-menu";
 import { winCountsFromEvents } from "@/lib/arena-games";
 import { buildSessionLogEvents } from "@/lib/session-log";
 import { BattleReadonlyScoreboard } from "./battle-readonly-scoreboard";
@@ -17,7 +17,10 @@ import type { SessionScoreEvent } from "@/lib/session-stats";
 type BattleDetailViewProps = {
   sessionId: string;
   currentUserId: string | null;
+  /** Создатель сражения (из списка арены) */
+  canDelete?: boolean;
   onBack: () => void;
+  onDeleted?: () => void;
 };
 
 function formatBattleDuration(ms: number): string {
@@ -41,7 +44,9 @@ function pluralRounds(n: number) {
 export function BattleDetailView({
   sessionId,
   currentUserId,
+  canDelete: canDeleteProp,
   onBack,
+  onDeleted,
 }: BattleDetailViewProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +56,7 @@ export function BattleDetailView({
   const [participants, setParticipants] = useState<BattleParticipant[]>([]);
   const [sessionEvents, setSessionEvents] = useState<SessionScoreEvent[]>([]);
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
+  const [createdBy, setCreatedBy] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,6 +73,7 @@ export function BattleDetailView({
       setGameName(data.session.game_name);
       setStartedAt(data.session.started_at);
       setEndedAt(data.session.ended_at);
+      setCreatedBy(data.session.created_by);
       setParticipants(data.participants);
       setActorNames(data.actorNames);
       setSessionEvents(
@@ -114,6 +121,11 @@ export function BattleDetailView({
       ? new Date(endedAt).getTime() - new Date(startedAt).getTime()
       : 0;
 
+  const canDelete =
+    !!onDeleted &&
+    (canDeleteProp ??
+      (!!currentUserId && !!createdBy && createdBy === currentUserId));
+
   if (loading) {
     return <p className="py-12 text-center text-sm text-zinc-500">Загрузка…</p>;
   }
@@ -144,7 +156,11 @@ export function BattleDetailView({
           <ArrowLeft className="h-4 w-4" />
           Назад к арене
         </button>
-        <BattleShareButton sessionId={sessionId} className="h-9 gap-2 px-3 text-sm" />
+        <BattleActionsMenu
+          sessionId={sessionId}
+          canDelete={canDelete}
+          onDeleted={onDeleted}
+        />
       </div>
 
       <div className="rounded-2xl border border-zinc-700 bg-zinc-900/80 px-4 py-4 text-center">
