@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { createClient, REMEMBER_EMAIL_KEY } from "@/lib/supabase/client";
 import { AuthCheckbox } from "@/components/login/auth-checkbox";
 import {
@@ -140,10 +140,7 @@ export function LoginForm() {
           {loading ? (
             <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
           ) : (
-            <>
-              Войти
-              <ArrowRight className="h-4 w-4" />
-            </>
+            "Войти"
           )}
         </button>
       </form>

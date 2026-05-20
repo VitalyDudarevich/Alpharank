@@ -32,9 +32,9 @@ export function AuthLayout({
 
       <div className="relative z-10 flex w-full max-w-[380px] flex-col items-center">
         {!compact && (
-          <div className="relative -mb-10 w-full sm:-mb-14">
+          <div className="relative -mb-10 w-full -translate-y-[20px] sm:-mb-14">
             <div
-              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-24 bg-gradient-to-t from-[#06050b] via-[#06050b]/90 to-transparent sm:h-32"
+              className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-24 translate-y-[25px] bg-gradient-to-t from-[#06050b] via-[#06050b]/90 to-transparent sm:h-32"
               aria-hidden
             />
             <Image
@@ -43,7 +43,7 @@ export function AuthLayout({
               width={640}
               height={360}
               priority
-              className="relative z-0 h-auto w-full [mask-image:linear-gradient(to_bottom,black_55%,transparent_100%)]"
+              className="relative z-0 h-auto w-full [mask-image:linear-gradient(to_bottom,black_calc(55%+25px),transparent_100%)]"
             />
           </div>
         )}
