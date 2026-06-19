@@ -4,6 +4,7 @@ import { memo } from "react";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { ArenaWinsChart } from "./arena-wins-chart";
 import type { SessionScoreEvent } from "@/lib/session-stats";
+import type { ScoringMode } from "@/lib/types";
 
 const CHART_DEBOUNCE_MS = 2000;
 
@@ -12,6 +13,8 @@ type DeferredArenaWinsChartProps = {
   memberNames: Record<string, string>;
   memberIds: string[];
   gameId: string | null;
+  scoringMode?: ScoringMode;
+  participantSlots?: number | null;
 };
 
 export const DeferredArenaWinsChart = memo(function DeferredArenaWinsChart({
@@ -19,6 +22,8 @@ export const DeferredArenaWinsChart = memo(function DeferredArenaWinsChart({
   memberNames,
   memberIds,
   gameId,
+  scoringMode,
+  participantSlots,
 }: DeferredArenaWinsChartProps) {
   const debouncedEvents = useDebouncedValue(events, CHART_DEBOUNCE_MS);
 
@@ -28,6 +33,8 @@ export const DeferredArenaWinsChart = memo(function DeferredArenaWinsChart({
       memberNames={memberNames}
       memberIds={memberIds}
       gameId={gameId}
+      scoringMode={scoringMode}
+      participantSlots={participantSlots}
     />
   );
 });

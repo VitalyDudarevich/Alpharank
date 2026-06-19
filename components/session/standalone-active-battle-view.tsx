@@ -205,7 +205,7 @@ export function StandaloneActiveBattleView({
           <h2 className="text-sm font-medium text-zinc-400">Очки</h2>
           {isSmart && (
             <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
-              Умный · {slots} мест
+              Умный подсчёт ({slots} мест)
             </span>
           )}
         </div>
@@ -244,6 +244,8 @@ export function StandaloneActiveBattleView({
             memberNames={memberNames}
             memberIds={participantIds}
             gameId={null}
+            scoringMode={scoringMode}
+            participantSlots={slots}
           />
         </div>
       </section>

@@ -15,14 +15,18 @@ import { buildMemberColorMap } from "@/lib/player-colors";
 import { filterSessionEventsByGame } from "@/lib/arena-games";
 import {
   computePlayerTimelines,
+  computeSmartPlayerTimelines,
   type SessionScoreEvent,
 } from "@/lib/session-stats";
+import type { ScoringMode } from "@/lib/types";
 
 interface ArenaWinsChartProps {
   events: SessionScoreEvent[];
   memberNames: Record<string, string>;
   memberIds: string[];
   gameId: string | null;
+  scoringMode?: ScoringMode;
+  participantSlots?: number | null;
 }
 
 export const ArenaWinsChart = memo(function ArenaWinsChart({
@@ -30,7 +34,16 @@ export const ArenaWinsChart = memo(function ArenaWinsChart({
   memberNames,
   memberIds,
   gameId,
+  scoringMode = "classic",
+  participantSlots = null,
 }: ArenaWinsChartProps) {
+  const isSmart = scoringMode === "smart";
+  const slots = participantSlots ?? memberIds.length;
+  const yLabel = isSmart ? "Очки" : "Победы";
+  const emptyMessage = isSmart
+    ? "График появится после первого раунда"
+    : "График появится после первой победы";
+
   const colorMap = useMemo(() => buildMemberColorMap(memberIds), [memberIds]);
 
   const filteredEvents = useMemo(
@@ -39,8 +52,11 @@ export const ArenaWinsChart = memo(function ArenaWinsChart({
   );
 
   const timelines = useMemo(
-    () => computePlayerTimelines(filteredEvents, memberIds),
-    [filteredEvents, memberIds]
+    () =>
+      isSmart
+        ? computeSmartPlayerTimelines(filteredEvents, memberIds, slots)
+        : computePlayerTimelines(filteredEvents, memberIds),
+    [filteredEvents, memberIds, isSmart, slots]
   );
 
   const chartPlayers = memberIds
@@ -71,9 +87,7 @@ export const ArenaWinsChart = memo(function ArenaWinsChart({
 
   if (!hasActivity) {
     return (
-      <p className="py-8 text-center text-sm text-zinc-500">
-        График появится после первой победы
-      </p>
+      <p className="py-8 text-center text-sm text-zinc-500">{emptyMessage}</p>
     );
   }
 
@@ -101,12 +115,12 @@ export const ArenaWinsChart = memo(function ArenaWinsChart({
             <YAxis
               type="number"
               dataKey="wins"
-              name="Победы"
+              name={yLabel}
               allowDecimals={false}
               domain={[0, maxWins + 0.5]}
               tick={{ fill: "#a1a1aa", fontSize: 11 }}
               label={{
-                value: "Победы",
+                value: yLabel,
                 angle: -90,
                 position: "insideLeft",
                 fill: "#71717a",
@@ -129,7 +143,7 @@ export const ArenaWinsChart = memo(function ArenaWinsChart({
                       <p className="font-medium text-zinc-100">{name}</p>
                     )}
                     <p className="text-zinc-400">
-                      Побед: {p.wins} · Игр: {p.games}
+                      {isSmart ? "Очков" : "Побед"}: {p.wins} · Игр: {p.games}
                     </p>
                   </div>
                 );
@@ -169,7 +183,7 @@ export const ArenaWinsChart = memo(function ArenaWinsChart({
                 <span className="truncate text-zinc-200">{name}</span>
               </span>
               <span className="shrink-0 tabular-nums text-zinc-500">
-                {last.wins} поб · {last.games} игр
+                {last.wins} {isSmart ? "оч" : "поб"} · {last.games} игр
               </span>
             </li>
           );

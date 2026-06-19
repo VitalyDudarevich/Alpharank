@@ -50,6 +50,15 @@ export interface PlayerTimelinePoint {
   wins: number;
 }
 
+function sortedActiveEvents(events: SessionScoreEvent[]): SessionScoreEvent[] {
+  return events
+    .filter((e) => !e.deleted_at)
+    .sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+}
+
 export function computePlayerTimelines(
   events: SessionScoreEvent[],
   memberIds: string[]
@@ -59,14 +68,7 @@ export function computePlayerTimelines(
     timelines[id] = [{ games: 0, wins: 0 }];
   }
 
-  const activeEvents = events
-    .filter((e) => !e.deleted_at)
-    .sort(
-      (a, b) =>
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
-
-  for (const event of activeEvents) {
+  for (const event of sortedActiveEvents(events)) {
     const winnerId = eventWinnerId(event);
     for (const pid of event.participant_ids) {
       if (!timelines[pid]) timelines[pid] = [{ games: 0, wins: 0 }];
@@ -74,6 +76,36 @@ export function computePlayerTimelines(
       timelines[pid].push({
         games: last.games + 1,
         wins: last.wins + (pid === winnerId ? 1 : 0),
+      });
+    }
+  }
+
+  return timelines;
+}
+
+/**
+ * Таймлайн для умного режима: X = число игр (+1 за раунд), Y = сумма очков (+N за место).
+ */
+export function computeSmartPlayerTimelines(
+  events: SessionScoreEvent[],
+  memberIds: string[],
+  slots: number
+): Record<string, PlayerTimelinePoint[]> {
+  const timelines: Record<string, PlayerTimelinePoint[]> = {};
+  for (const id of memberIds) {
+    timelines[id] = [{ games: 0, wins: 0 }];
+  }
+
+  for (const event of sortedActiveEvents(events)) {
+    for (const pid of event.participant_ids) {
+      if (!timelines[pid]) timelines[pid] = [{ games: 0, wins: 0 }];
+      const last = timelines[pid][timelines[pid].length - 1];
+      const place = event.placements?.[pid];
+      const roundPoints =
+        place != null ? pointsForPlace(slots, place) : 0;
+      timelines[pid].push({
+        games: last.games + 1,
+        wins: last.wins + roundPoints,
       });
     }
   }
