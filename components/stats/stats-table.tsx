@@ -13,18 +13,26 @@ export function StatsTable({ stats }: { stats: MemberStats[] }) {
   const hasPoints = stats.some((s) => s.points > 0);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-800">
-      <table className="w-full text-sm">
+    <div className="overflow-x-auto rounded-2xl border border-zinc-800">
+      <table className="w-full min-w-[28rem] text-sm">
         <thead>
           <tr className="border-b border-zinc-800 bg-zinc-900/80 text-left text-zinc-500">
-            <th className="px-4 py-3 font-medium">#</th>
-            <th className="px-4 py-3 font-medium">Игрок</th>
+            <th className="whitespace-nowrap px-4 py-3 font-medium">#</th>
+            <th className="whitespace-nowrap px-4 py-3 font-medium">Игрок</th>
             {hasPoints && (
-              <th className="px-4 py-3 font-medium text-right">Очки</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium text-right">
+                Очки
+              </th>
             )}
-            <th className="px-4 py-3 font-medium text-right">Победы</th>
-            <th className="px-4 py-3 font-medium text-right">Игр</th>
-            <th className="px-4 py-3 font-medium text-right">%</th>
+            <th className="whitespace-nowrap px-4 py-3 font-medium text-right">
+              Победы
+            </th>
+            <th className="whitespace-nowrap px-4 py-3 font-medium text-right">
+              Игр
+            </th>
+            <th className="whitespace-nowrap px-4 py-3 font-medium text-right">
+              %
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -33,22 +41,22 @@ export function StatsTable({ stats }: { stats: MemberStats[] }) {
               key={s.member_id}
               className="border-b border-zinc-800/50 last:border-0"
             >
-              <td className="px-4 py-3 text-zinc-500">{i + 1}</td>
-              <td className="px-4 py-3 font-medium text-zinc-100">
+              <td className="whitespace-nowrap px-4 py-3 text-zinc-500">{i + 1}</td>
+              <td className="whitespace-nowrap px-4 py-3 font-medium text-zinc-100">
                 {s.display_name}
               </td>
               {hasPoints && (
-                <td className="px-4 py-3 text-right font-bold text-amber-400">
+                <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-amber-400">
                   {s.points}
                 </td>
               )}
-              <td className="px-4 py-3 text-right font-bold text-violet-400">
+              <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-violet-400">
                 {s.wins}
               </td>
-              <td className="px-4 py-3 text-right text-zinc-400">
+              <td className="whitespace-nowrap px-4 py-3 text-right text-zinc-400">
                 {s.games_played}
               </td>
-              <td className="px-4 py-3 text-right text-zinc-400">
+              <td className="whitespace-nowrap px-4 py-3 text-right text-zinc-400">
                 {s.win_rate}%
               </td>
             </tr>

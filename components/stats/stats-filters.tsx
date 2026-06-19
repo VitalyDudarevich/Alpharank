@@ -100,23 +100,27 @@ export function StatsFilters({
         <label className="mb-1 block text-xs font-medium text-zinc-500">
           Число игроков
         </label>
-        <select
+        <input
+          type="number"
+          min={2}
+          step={1}
+          inputMode="numeric"
+          placeholder="Любое"
           value={filter.playerCount ?? ""}
-          onChange={(e) =>
+          onChange={(e) => {
+            const raw = e.target.value.trim();
+            if (raw === "") {
+              onChange({ ...filter, playerCount: undefined });
+              return;
+            }
+            const n = parseInt(raw, 10);
             onChange({
               ...filter,
-              playerCount: e.target.value ? parseInt(e.target.value) : undefined,
-            })
-          }
-          className="h-10 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100"
-        >
-          <option value="">Любое</option>
-          {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-            <option key={n} value={n}>
-              {n} игроков
-            </option>
-          ))}
-        </select>
+              playerCount: Number.isFinite(n) && n >= 2 ? n : undefined,
+            });
+          }}
+          className="h-10 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100 placeholder:text-zinc-600"
+        />
       </div>
 
       {players.length > 0 && (

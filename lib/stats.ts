@@ -18,7 +18,7 @@ export function filterScoreEvents(
     }
     if (
       filter.playerCount !== undefined &&
-      e.participant_ids.length !== filter.playerCount
+      (e.participant_slots ?? e.participant_ids.length) !== filter.playerCount
     )
       return false;
     if (filter.rosterIds && filter.rosterIds.length > 0) {
