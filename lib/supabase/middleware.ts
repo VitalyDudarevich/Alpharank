@@ -30,9 +30,11 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims проверяет JWT локально (без сетевого вызова) при асимметричных
+  // ключах подписи и безопасно откатывается к getUser при legacy HS256. Это
+  // снимает round-trip к Supabase Auth с КАЖДОГО запроса.
+  const { data: claims } = await supabase.auth.getClaims();
+  const user = claims?.claims?.sub ? { id: claims.claims.sub } : null;
 
   const isAuthPage =
     request.nextUrl.pathname.startsWith("/login") ||

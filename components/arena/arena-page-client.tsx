@@ -4,12 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LogIn, Plus, Swords } from "lucide-react";
+import { Loader2, LogIn, Plus, Swords } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
 import {
   fetchActiveBattle,
   fetchArenaState,
   fetchMoreArenaBattles,
+  type ArenaBattlesPage,
   type ArenaHistoryItem,
 } from "@/lib/actions/arena";
 import { StandaloneActiveBattleView } from "@/components/session/standalone-active-battle-view";
@@ -31,17 +33,29 @@ import {
 type ArenaPageClientProps = {
   userId: string | null;
   initialBattleId?: string | null;
+  initialArena?: ArenaBattlesPage | null;
 };
+
+// Сбрасывается при полной перезагрузке страницы. На первом маунте серверные
+// initial-данные свежие — фоновую ревалидацию пропускаем. При последующих
+// маунтах (клиентская навигация назад на арену) данные могут быть из router
+// cache, поэтому тихо обновляем их в фоне.
+let arenaHydratedOnce = false;
 
 export function ArenaPageClient({
   userId,
   initialBattleId = null,
+  initialArena = null,
 }: ArenaPageClientProps) {
   const isGuest = userId === null;
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  // С серверными initial-данными список готов сразу — без «Загрузка…» и без
+  // отдельного запроса на маунте.
+  const [ready, setReady] = useState(!!initialArena);
   const [setupOpen, setSetupOpen] = useState(false);
-  const [battles, setBattles] = useState<ArenaHistoryItem[]>([]);
+  const [battles, setBattles] = useState<ArenaHistoryItem[]>(
+    initialArena?.battles ?? []
+  );
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   const [sessionId, setSessionId] = useState("");
@@ -53,9 +67,13 @@ export function ArenaPageClient({
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
-  const [totalBattlesCount, setTotalBattlesCount] = useState(0);
-  const [endedOffset, setEndedOffset] = useState(0);
-  const [hasMoreBattles, setHasMoreBattles] = useState(false);
+  const [totalBattlesCount, setTotalBattlesCount] = useState(
+    initialArena?.totalCount ?? 0
+  );
+  const [endedOffset, setEndedOffset] = useState(initialArena?.endedOffset ?? 0);
+  const [hasMoreBattles, setHasMoreBattles] = useState(
+    initialArena?.hasMore ?? false
+  );
   const [loadingMoreBattles, setLoadingMoreBattles] = useState(false);
   const [listResetKey, setListResetKey] = useState(0);
   const [seriesOpen, setSeriesOpen] = useState(false);
@@ -208,11 +226,39 @@ export function ArenaPageClient({
   }, [applyBattlesPage, openActiveBattle, userId]);
 
   useEffect(() => {
-    setReady(false);
     setDeepLinkHandled(false);
+    if (initialArena) {
+      // Показываем серверные данные сразу (без «Загрузка…»). На первом маунте
+      // они свежие; при возврате на арену клиентской навигацией — тихо
+      // ревалидируем в фоне, чтобы список не оставался устаревшим.
+      setReady(true);
+      if (arenaHydratedOnce) {
+        void refreshBattlesList();
+      }
+      arenaHydratedOnce = true;
+      return;
+    }
+    setReady(false);
+    arenaHydratedOnce = true;
     void reloadArena();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount
   }, []);
+
+  // Возврат на вкладку/в PWA → подтянуть свежий список (на том же устройстве
+  // изменения видны сразу, без перезахода).
+  useEffect(() => {
+    const revalidateOnVisible = () => {
+      if (document.visibilityState === "visible") {
+        void refreshBattlesList();
+      }
+    };
+    window.addEventListener("visibilitychange", revalidateOnVisible);
+    window.addEventListener("focus", revalidateOnVisible);
+    return () => {
+      window.removeEventListener("visibilitychange", revalidateOnVisible);
+      window.removeEventListener("focus", revalidateOnVisible);
+    };
+  }, [refreshBattlesList]);
 
   const handleSelectBattle = useCallback(
     async (id: string) => {
@@ -263,6 +309,12 @@ export function ArenaPageClient({
     return `/login?redirect=${encodeURIComponent(dest)}`;
   }, [detailSessionId, activeSessionId]);
 
+  // Pull-to-refresh активен только на главном списке (не во вью боя/детали).
+  const { pullDistance, refreshing } = usePullToRefresh({
+    onRefresh: reloadArena,
+    enabled: ready && !activeSessionId && !detailSessionId,
+  });
+
   if (!ready) {
     return (
       <main className={appPageClass}>
@@ -296,6 +348,27 @@ export function ArenaPageClient({
           (isGuest ? "max-md:pb-28" : appBottomActionClearanceClass),
       )}
     >
+      {(pullDistance > 0 || refreshing) && (
+        <div
+          className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center"
+          style={{ transform: `translateY(${Math.max(pullDistance - 8, 0)}px)` }}
+        >
+          <div className="mt-[calc(env(safe-area-inset-top)+0.5rem)] flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700 bg-zinc-900/95 shadow-lg">
+            <Loader2
+              className={cn("h-5 w-5 text-violet-400", refreshing && "animate-spin")}
+              style={
+                refreshing
+                  ? undefined
+                  : {
+                      transform: `rotate(${pullDistance * 3}deg)`,
+                      opacity: Math.min(pullDistance / 70, 1),
+                    }
+              }
+            />
+          </div>
+        </div>
+      )}
+
       <div className={cn(appPageContentClass, appMainClass)}>
         <ArenaPageHeader />
 

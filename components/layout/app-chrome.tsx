@@ -12,16 +12,16 @@ export function AppChrome() {
   const pathname = usePathname();
   const [authed, setAuthed] = useState(false);
 
+  // Статус читаем один раз из локальной сессии (cookie), без сетевого
+  // getUser. Раньше getUser ходил в Supabase Auth на КАЖДУЮ смену маршрута и
+  // подвешивал отрисовку навигации. Видимость меню дальше зависит только от
+  // pathname — без повторных запросов на каждый клик.
   useEffect(() => {
-    if (!shouldShowAppNav(pathname)) {
-      setAuthed(false);
-      return;
-    }
     const supabase = createClient();
-    void supabase.auth.getUser().then(({ data }) => {
-      setAuthed(!!data.user);
+    void supabase.auth.getSession().then(({ data }) => {
+      setAuthed(!!data.session);
     });
-  }, [pathname]);
+  }, []);
 
   if (!authed || !shouldShowAppNav(pathname)) {
     return null;
