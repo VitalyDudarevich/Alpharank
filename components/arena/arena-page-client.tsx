@@ -180,6 +180,18 @@ export function ArenaPageClient({
     applyBattlesPage(arena);
   }, [applyBattlesPage]);
 
+  // Сервер прислал свежие данные (после revalidatePath из server action —
+  // завершение/удаление боя обновляют страницу «/»). Клиент инициализирует
+  // состояние из initialArena только на маунте, поэтому без этой синхронизации
+  // автоматически открывшаяся арена осталась бы устаревшей.
+  const lastInitialArenaRef = useRef(initialArena);
+  useEffect(() => {
+    if (initialArena && initialArena !== lastInitialArenaRef.current) {
+      lastInitialArenaRef.current = initialArena;
+      applyBattlesPage(initialArena);
+    }
+  }, [initialArena, applyBattlesPage]);
+
   const loadMoreBattles = useCallback(async () => {
     if (loadingMoreBattles || !hasMoreBattles) return;
     setLoadingMoreBattles(true);
@@ -394,8 +406,15 @@ export function ArenaPageClient({
             onDeleted={
               userId
                 ? () => {
+                    const id = detailSessionId;
                     setDetailSessionId(null);
                     syncBattleUrl(null);
+                    if (id) {
+                      // Оптимистично убираем из списка сразу, reloadArena ниже
+                      // сверит с сервером.
+                      setBattles((prev) => prev.filter((b) => b.id !== id));
+                      setTotalBattlesCount((c) => Math.max(0, c - 1));
+                    }
                     void reloadArena();
                   }
                 : undefined
@@ -419,10 +438,20 @@ export function ArenaPageClient({
             onEnded={
               canEditActive
                 ? () => {
+                    const id = sessionId;
                     activeSessionIdRef.current = null;
                     setActiveSessionId(null);
                     setSessionId("");
                     syncBattleUrl(null);
+                    if (id) {
+                      // Оптимистично помечаем завершённым; reloadArena уточнит
+                      // порядок и ended_at с сервера.
+                      setBattles((prev) =>
+                        prev.map((b) =>
+                          b.id === id ? { ...b, status: "ended" as const } : b
+                        )
+                      );
+                    }
                     void reloadArena();
                   }
                 : undefined
@@ -430,10 +459,15 @@ export function ArenaPageClient({
             onDeleted={
               canEditActive
                 ? () => {
+                    const id = sessionId;
                     activeSessionIdRef.current = null;
                     setActiveSessionId(null);
                     setSessionId("");
                     syncBattleUrl(null);
+                    if (id) {
+                      setBattles((prev) => prev.filter((b) => b.id !== id));
+                      setTotalBattlesCount((c) => Math.max(0, c - 1));
+                    }
                     void reloadArena();
                   }
                 : undefined
