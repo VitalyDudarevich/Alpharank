@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { format, intervalToDuration } from "date-fns";
 import { ru } from "date-fns/locale";
 import { ArrowLeft } from "lucide-react";
@@ -11,6 +11,8 @@ import { buildSessionLogEvents } from "@/lib/session-log";
 import { BattleReadonlyScoreboard } from "./battle-readonly-scoreboard";
 import { DeferredArenaWinsChart } from "./deferred-arena-wins-chart";
 import { SessionEventLog } from "./session-event-log";
+import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
+import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
 import type { BattleParticipant } from "@/lib/types";
 import type { SessionScoreEvent } from "@/lib/session-stats";
 
@@ -58,18 +60,13 @@ export function BattleDetailView({
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [createdBy, setCreatedBy] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    void fetchBattleDetail(sessionId).then((data) => {
-      if (cancelled) return;
+  const applyDetail = useCallback(
+    (data: Awaited<ReturnType<typeof fetchBattleDetail>>) => {
       if ("error" in data) {
         setError(data.error ?? "Ошибка загрузки");
-        setLoading(false);
         return;
       }
+      setError(null);
       setGameName(data.session.game_name);
       setStartedAt(data.session.started_at);
       setEndedAt(data.session.ended_at);
@@ -88,13 +85,35 @@ export function BattleDetailView({
           deleted_at: e.deleted_at,
         }))
       );
+    },
+    []
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    void fetchBattleDetail(sessionId).then((data) => {
+      if (cancelled) return;
+      applyDetail(data);
       setLoading(false);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [sessionId, applyDetail]);
+
+  // Перечитать детали без экрана «Загрузка…» (показывается спиннер pull-to-refresh).
+  const reloadDetail = useCallback(async () => {
+    const data = await fetchBattleDetail(sessionId);
+    applyDetail(data);
+  }, [sessionId, applyDetail]);
+
+  const { pullDistance, refreshing } = usePullToRefresh({
+    onRefresh: reloadDetail,
+  });
 
   const participantIds = participants.map((p) => p.id);
   const memberNames = useMemo(
@@ -147,6 +166,7 @@ export function BattleDetailView({
 
   return (
     <div className="space-y-6">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"

@@ -13,6 +13,8 @@ import { BattleActionsMenu } from "./battle-actions-menu";
 import { StandaloneBattleScoreboard } from "./standalone-battle-scoreboard";
 import { SessionEventLog } from "./session-event-log";
 import { useSessionScoreEvents } from "./use-session-score-events";
+import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
+import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
 import { winCountsFromEvents } from "@/lib/arena-games";
 import { buildSessionLogEvents } from "@/lib/session-log";
 import type { BattleParticipant } from "@/lib/types";
@@ -81,12 +83,14 @@ export function StandaloneActiveBattleView({
     return () => window.clearInterval(timer);
   }, [startedAt]);
 
-  const { events: sessionEvents, appendEvent, markEventDeleted } =
+  const { events: sessionEvents, appendEvent, markEventDeleted, reload } =
     useSessionScoreEvents({
       sessionId,
       participantIds,
       initialEvents: sessionScoreEvents,
     });
+
+  const { pullDistance, refreshing } = usePullToRefresh({ onRefresh: reload });
 
   const winCounts = useMemo(
     () => winCountsFromEvents(sessionEvents, null),
@@ -133,6 +137,7 @@ export function StandaloneActiveBattleView({
 
   return (
     <div className="space-y-6">
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"

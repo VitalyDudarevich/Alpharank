@@ -29,6 +29,22 @@ function mapScoreRows(
   }));
 }
 
+async function fetchScoreEvents(
+  sessionId: string
+): Promise<SessionScoreEvent[] | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("score_events")
+    .select(
+      "id, winner_participant_id, participant_ids, created_at, created_by, deleted_at"
+    )
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true });
+
+  if (error) return null;
+  return mapScoreRows(data ?? []);
+}
+
 export function useSessionScoreEvents({
   sessionId,
   participantIds,
@@ -48,24 +64,22 @@ export function useSessionScoreEvents({
     if (!sessionId) return;
 
     let cancelled = false;
-    const supabase = createClient();
-
     void (async () => {
-      const { data, error } = await supabase
-        .from("score_events")
-        .select(
-          "id, winner_participant_id, participant_ids, created_at, created_by, deleted_at"
-        )
-        .eq("session_id", sessionId)
-        .order("created_at", { ascending: true });
-
-      if (cancelled || error) return;
-      setEvents(mapScoreRows(data ?? []));
+      const rows = await fetchScoreEvents(sessionId);
+      if (cancelled || !rows) return;
+      setEvents(rows);
     })();
 
     return () => {
       cancelled = true;
     };
+  }, [sessionId]);
+
+  /** Принудительно перечитать события счёта (pull-to-refresh). */
+  const reload = useCallback(async () => {
+    if (!sessionId) return;
+    const rows = await fetchScoreEvents(sessionId);
+    if (rows) setEvents(rows);
   }, [sessionId]);
 
   useEffect(() => {
@@ -135,5 +149,5 @@ export function useSessionScoreEvents({
     [events, participantIds]
   );
 
-  return { events, playerStats, appendEvent, markEventDeleted };
+  return { events, playerStats, appendEvent, markEventDeleted, reload };
 }

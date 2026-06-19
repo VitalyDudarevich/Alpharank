@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
-import { ChevronDown, Plus } from "lucide-react";
+import { ChevronDown, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { addUserFriendByName } from "@/lib/actions/friends";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,8 @@ type ParticipantPickerProps = {
   onKnownNamesChange?: (names: string[]) => void;
   selected: string[];
   onAdd: (name: string) => void;
+  /** Убрать уже добавленного участника (чипсы рендерятся под строкой поиска в sheet). */
+  onRemove?: (name: string) => void;
   disabled?: boolean;
   placeholder?: string;
   /** В диалоге: список в потоке и выше, чтобы видеть больше имён и кнопку добавления. */
@@ -22,6 +24,7 @@ export function ParticipantPicker({
   onKnownNamesChange,
   selected,
   onAdd,
+  onRemove,
   disabled,
   placeholder = "Найти или ввести имя…",
   variant = "dropdown",
@@ -174,6 +177,27 @@ export function ParticipantPicker({
           />
         </button>
       </div>
+
+      {isSheet && selected.length > 0 && (
+        <ul className="mt-2 flex max-h-24 shrink-0 flex-wrap gap-2 overflow-y-auto">
+          {selected.map((name) => (
+            <li key={name}>
+              <button
+                type="button"
+                disabled={disabled}
+                // preventDefault, чтобы тап по чипсу не уводил фокус с инпута —
+                // клавиатура остаётся открытой.
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => onRemove?.(name)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-violet-500/40 bg-violet-600/20 px-3 py-1 text-sm text-violet-100 transition-colors hover:bg-violet-600/30 disabled:opacity-50"
+              >
+                {name}
+                {onRemove && <X className="h-3.5 w-3.5 opacity-70" />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {open && (
         <div
