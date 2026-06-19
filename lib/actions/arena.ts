@@ -381,7 +381,7 @@ export async function fetchSeriesDetail(sessionIds: string[]) {
     supabase
       .from("score_events")
       .select(
-        "id, session_id, winner_participant_id, participant_ids, created_at, created_by, deleted_at"
+        "id, session_id, winner_participant_id, participant_ids, placements, created_at, created_by, deleted_at"
       )
       .in("session_id", ids)
       .order("created_at", { ascending: true }),

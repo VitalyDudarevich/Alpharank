@@ -7,27 +7,36 @@ import {
   type SessionScoreEvent,
 } from "@/lib/session-stats";
 
-function mapScoreRows(
-  rows: {
-    id: string;
-    winner_participant_id: string;
-    participant_ids: string[];
-    created_at: string;
-    created_by: string | null;
-    deleted_at: string | null;
-  }[]
-): SessionScoreEvent[] {
-  return rows.map((e) => ({
-    id: e.id,
+type ScoreEventRow = {
+  id: string;
+  winner_participant_id: string;
+  participant_ids: string[];
+  placements?: Record<string, number> | null;
+  created_at: string;
+  created_by: string | null;
+  deleted_at: string | null;
+};
+
+function mapScoreRow(row: ScoreEventRow): SessionScoreEvent {
+  return {
+    id: row.id,
     winner_member_id: null,
-    winner_participant_id: e.winner_participant_id,
-    participant_ids: e.participant_ids,
+    winner_participant_id: row.winner_participant_id,
+    participant_ids: row.participant_ids,
+    placements: row.placements ?? null,
     game_id: null,
-    created_at: e.created_at,
-    created_by: e.created_by ?? "",
-    deleted_at: e.deleted_at,
-  }));
+    created_at: row.created_at,
+    created_by: row.created_by ?? "",
+    deleted_at: row.deleted_at,
+  };
 }
+
+function mapScoreRows(rows: ScoreEventRow[]): SessionScoreEvent[] {
+  return rows.map(mapScoreRow);
+}
+
+const SCORE_EVENT_COLUMNS =
+  "id, winner_participant_id, participant_ids, placements, created_at, created_by, deleted_at";
 
 async function fetchScoreEvents(
   sessionId: string
@@ -35,9 +44,7 @@ async function fetchScoreEvents(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("score_events")
-    .select(
-      "id, winner_participant_id, participant_ids, created_at, created_by, deleted_at"
-    )
+    .select(SCORE_EVENT_COLUMNS)
     .eq("session_id", sessionId)
     .order("created_at", { ascending: true });
 
@@ -99,7 +106,7 @@ export function useSessionScoreEvents({
         },
         (payload) => {
           if (payload.eventType === "INSERT" && payload.new) {
-            const row = payload.new as SessionScoreEvent;
+            const row = mapScoreRow(payload.new as ScoreEventRow);
             setEvents((prev) => {
               if (prev.some((e) => e.id === row.id)) {
                 return prev.map((e) => (e.id === row.id ? row : e));
@@ -110,7 +117,7 @@ export function useSessionScoreEvents({
           }
 
           if (payload.eventType === "UPDATE" && payload.new) {
-            const row = payload.new as SessionScoreEvent;
+            const row = mapScoreRow(payload.new as ScoreEventRow);
             setEvents((prev) =>
               prev.map((e) => (e.id === row.id ? row : e))
             );
