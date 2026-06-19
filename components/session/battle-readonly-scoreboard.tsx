@@ -6,16 +6,25 @@ import type { BattleParticipant } from "@/lib/types";
 type BattleReadonlyScoreboardProps = {
   participants: BattleParticipant[];
   winCounts: Record<string, number>;
+  /** Очки в умном режиме — показываются справа от побед. */
+  pointCounts?: Record<string, number>;
 };
 
 export function BattleReadonlyScoreboard({
   participants,
   winCounts,
+  pointCounts,
 }: BattleReadonlyScoreboardProps) {
   const memberColors = buildMemberColorMap(participants.map((p) => p.id));
-  const sorted = [...participants].sort(
-    (a, b) => (winCounts[b.id] ?? 0) - (winCounts[a.id] ?? 0)
-  );
+  const sorted = [...participants].sort((a, b) => {
+    if (pointCounts) {
+      return (
+        (pointCounts[b.id] ?? 0) - (pointCounts[a.id] ?? 0) ||
+        (winCounts[b.id] ?? 0) - (winCounts[a.id] ?? 0)
+      );
+    }
+    return (winCounts[b.id] ?? 0) - (winCounts[a.id] ?? 0);
+  });
 
   return (
     <ul className="divide-y divide-zinc-800">
@@ -36,9 +45,16 @@ export function BattleReadonlyScoreboard({
               {participant.display_name}
             </span>
           </div>
-          <span className="text-2xl font-bold tabular-nums text-violet-300">
-            {winCounts[participant.id] ?? 0}
-          </span>
+          <div className="flex shrink-0 items-baseline gap-3 tabular-nums">
+            <span className="text-2xl font-bold text-violet-300">
+              {winCounts[participant.id] ?? 0}
+            </span>
+            {pointCounts && (
+              <span className="text-2xl font-bold text-amber-300">
+                {pointCounts[participant.id] ?? 0}
+              </span>
+            )}
+          </div>
         </li>
       ))}
     </ul>

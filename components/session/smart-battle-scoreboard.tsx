@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { addRoundPlacements } from "@/lib/actions/score";
 import { buildMemberColorMap } from "@/lib/player-colors";
+import { winCountsFromEvents } from "@/lib/arena-games";
 import { computeSessionPoints, pointsForPlace } from "@/lib/session-stats";
 import type { BattleParticipant } from "@/lib/types";
 import type { SessionScoreEvent } from "@/lib/session-stats";
@@ -44,13 +45,20 @@ export function SmartBattleScoreboard({
     [events, slots]
   );
 
-  // Вне ввода — сортируем по очкам; во время ввода держим исходный порядок.
+  const winCounts = useMemo(
+    () => winCountsFromEvents(events, null),
+    [events]
+  );
+
+  // Вне ввода — сортируем по очкам, затем по победам; во время ввода держим исходный порядок.
   const ordered = useMemo(() => {
     if (entering) return participants;
     return [...participants].sort(
-      (a, b) => (totals[b.id] ?? 0) - (totals[a.id] ?? 0)
+      (a, b) =>
+        (totals[b.id] ?? 0) - (totals[a.id] ?? 0) ||
+        (winCounts[b.id] ?? 0) - (winCounts[a.id] ?? 0)
     );
-  }, [participants, totals, entering]);
+  }, [participants, totals, winCounts, entering]);
 
   const takenPlaces = new Set(Object.values(places));
   const allAssigned = participants.every((p) => places[p.id] != null);
@@ -133,9 +141,14 @@ export function SmartBattleScoreboard({
                   </span>
                 )}
               </div>
-              <span className="text-right text-2xl font-bold tabular-nums text-amber-300">
-                {totals[p.id] ?? 0}
-              </span>
+              <div className="flex shrink-0 items-baseline gap-3 tabular-nums">
+                <span className="text-2xl font-bold text-violet-300">
+                  {winCounts[p.id] ?? 0}
+                </span>
+                <span className="text-2xl font-bold text-amber-300">
+                  {totals[p.id] ?? 0}
+                </span>
+              </div>
             </div>
 
             {entering && (

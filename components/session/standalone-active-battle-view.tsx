@@ -212,7 +212,8 @@ export function StandaloneActiveBattleView({
         {readOnly ? (
           <BattleReadonlyScoreboard
             participants={participants}
-            winCounts={isSmart ? pointTotals : winCounts}
+            winCounts={winCounts}
+            pointCounts={isSmart ? pointTotals : undefined}
           />
         ) : isSmart ? (
           <SmartBattleScoreboard

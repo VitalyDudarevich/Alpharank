@@ -237,7 +237,8 @@ export function BattleDetailView({
         </div>
         <BattleReadonlyScoreboard
           participants={participants}
-          winCounts={isSmart ? pointTotals : winCounts}
+          winCounts={winCounts}
+          pointCounts={isSmart ? pointTotals : undefined}
         />
       </section>
 
