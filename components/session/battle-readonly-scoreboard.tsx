@@ -1,6 +1,7 @@
 "use client";
 
 import { buildMemberColorMap } from "@/lib/player-colors";
+import { cn } from "@/lib/utils";
 import type { BattleParticipant } from "@/lib/types";
 
 type BattleReadonlyScoreboardProps = {
@@ -31,12 +32,17 @@ export function BattleReadonlyScoreboard({
       {sorted.map((participant, index) => (
         <li
           key={participant.id}
-          className="flex items-center justify-between gap-3 px-4 py-3"
+          className={cn(
+            "grid items-center gap-2 px-4 py-3",
+            pointCounts
+              ? "grid-cols-[auto_minmax(0,1fr)_3rem_3rem]"
+              : "grid-cols-[auto_minmax(0,1fr)_3rem]"
+          )}
         >
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="w-5 shrink-0 text-center text-xs font-medium text-zinc-600">
-              {index + 1}
-            </span>
+          <span className="w-5 shrink-0 text-center text-xs font-medium text-zinc-600">
+            {index + 1}
+          </span>
+          <div className="flex min-w-0 items-center gap-2">
             <span
               className="h-2.5 w-2.5 shrink-0 rounded-full"
               style={{ backgroundColor: memberColors[participant.id] }}
@@ -45,16 +51,14 @@ export function BattleReadonlyScoreboard({
               {participant.display_name}
             </span>
           </div>
-          <div className="flex shrink-0 items-baseline gap-3 tabular-nums">
-            <span className="text-2xl font-bold text-violet-300">
-              {winCounts[participant.id] ?? 0}
+          <span className="text-center text-2xl font-bold tabular-nums text-violet-300">
+            {winCounts[participant.id] ?? 0}
+          </span>
+          {pointCounts && (
+            <span className="text-center text-2xl font-bold tabular-nums text-amber-300">
+              {pointCounts[participant.id] ?? 0}
             </span>
-            {pointCounts && (
-              <span className="text-2xl font-bold text-amber-300">
-                {pointCounts[participant.id] ?? 0}
-              </span>
-            )}
-          </div>
+          )}
         </li>
       ))}
     </ul>

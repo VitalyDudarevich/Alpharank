@@ -126,7 +126,7 @@ export function SmartBattleScoreboard({
       <ul className="divide-y divide-zinc-800">
         {ordered.map((p) => (
           <li key={p.id} className="px-4 py-3">
-            <div className="flex items-center justify-between gap-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_3rem_3rem] items-center gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -141,14 +141,12 @@ export function SmartBattleScoreboard({
                   </span>
                 )}
               </div>
-              <div className="flex shrink-0 items-baseline gap-3 tabular-nums">
-                <span className="text-2xl font-bold text-violet-300">
-                  {winCounts[p.id] ?? 0}
-                </span>
-                <span className="text-2xl font-bold text-amber-300">
-                  {totals[p.id] ?? 0}
-                </span>
-              </div>
+              <span className="text-center text-2xl font-bold tabular-nums text-violet-300">
+                {winCounts[p.id] ?? 0}
+              </span>
+              <span className="text-center text-2xl font-bold tabular-nums text-amber-300">
+                {totals[p.id] ?? 0}
+              </span>
             </div>
 
             {entering && (
