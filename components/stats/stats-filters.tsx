@@ -64,6 +64,40 @@ export function StatsFilters({
 
       <div>
         <label className="mb-1 block text-xs font-medium text-zinc-500">
+          Режим подсчёта
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: "Все", value: "all" as const },
+            { label: "Обычный", value: "classic" as const },
+            { label: "Умный", value: "smart" as const },
+          ].map((m) => {
+            const active = (filter.scoringMode ?? "all") === m.value;
+            return (
+              <button
+                key={m.value}
+                type="button"
+                onClick={() =>
+                  onChange({
+                    ...filter,
+                    scoringMode: m.value === "all" ? undefined : m.value,
+                  })
+                }
+                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
+                  active
+                    ? "bg-violet-600 text-white"
+                    : "bg-zinc-800 text-zinc-400"
+                }`}
+              >
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-medium text-zinc-500">
           Число игроков
         </label>
         <select

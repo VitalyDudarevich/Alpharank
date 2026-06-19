@@ -16,6 +16,9 @@ export interface UserGame {
 
 export type SessionStatus = "active" | "ended";
 
+/** Режим начисления: classic — +1 победа; smart — очки за место (N − место + 1). */
+export type ScoringMode = "classic" | "smart";
+
 export interface Session {
   id: string;
   session_date: string;
@@ -25,6 +28,9 @@ export interface Session {
   status?: SessionStatus;
   started_at?: string | null;
   ended_at?: string | null;
+  scoring_mode?: ScoringMode;
+  /** Число мест (= максимум очков) для умного режима. */
+  participant_slots?: number | null;
   created_at: string;
 }
 
@@ -41,11 +47,15 @@ export interface ScoreEvent {
   session_id: string;
   winner_participant_id: string;
   participant_ids: string[];
+  /** Места участников за раунд в умном режиме: { participant_id: место }. */
+  placements?: Record<string, number> | null;
   created_by: string;
   created_at: string;
   deleted_at: string | null;
   /** из join sessions */
   game_name?: string;
+  scoring_mode?: ScoringMode;
+  participant_slots?: number | null;
 }
 
 /** Игрок для агрегированной статистики (по имени) */
@@ -60,6 +70,8 @@ export interface StatsFilter {
   dateTo?: string;
   playerCount?: number;
   rosterIds?: string[];
+  /** Фильтр по режиму: undefined/"all" — оба, иначе только classic или smart. */
+  scoringMode?: ScoringMode | "all";
 }
 
 export interface MemberStats {
@@ -68,4 +80,6 @@ export interface MemberStats {
   wins: number;
   games_played: number;
   win_rate: number;
+  /** Сумма очков за места (умный режим). */
+  points: number;
 }

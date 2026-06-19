@@ -3,6 +3,8 @@ export interface SessionScoreEvent {
   winner_member_id: string | null;
   winner_participant_id?: string | null;
   participant_ids: string[];
+  /** Места участников за раунд в умном режиме: { participant_id: место }. */
+  placements?: Record<string, number> | null;
   game_id: string | null;
   created_at: string;
   created_by: string;
@@ -11,6 +13,30 @@ export interface SessionScoreEvent {
 
 export function eventWinnerId(event: SessionScoreEvent): string {
   return event.winner_member_id ?? event.winner_participant_id ?? "";
+}
+
+/** Очки за место в умном режиме: N мест, 1-е место даёт N очков, последнее — 1. */
+export function pointsForPlace(slots: number, place: number): number {
+  if (!Number.isFinite(slots) || !Number.isFinite(place)) return 0;
+  return Math.max(0, slots - place + 1);
+}
+
+/**
+ * Сумма очков по участникам внутри одного сражения (умный режим).
+ * Для обычных раундов (без placements) очки не начисляются.
+ */
+export function computeSessionPoints(
+  events: SessionScoreEvent[],
+  slots: number
+): Record<string, number> {
+  const points: Record<string, number> = {};
+  for (const event of events) {
+    if (event.deleted_at || !event.placements) continue;
+    for (const [pid, place] of Object.entries(event.placements)) {
+      points[pid] = (points[pid] ?? 0) + pointsForPlace(slots, place);
+    }
+  }
+  return points;
 }
 
 export interface PlayerSessionStat {

@@ -20,7 +20,7 @@ import { StandaloneBattleSetupDialog } from "@/components/session/standalone-bat
 import { BattleHistorySection } from "@/components/session/battle-history-section";
 import { BattleDetailView } from "@/components/session/battle-detail-view";
 import { Button } from "@/components/ui/button";
-import type { BattleParticipant } from "@/lib/types";
+import type { BattleParticipant, ScoringMode } from "@/lib/types";
 import type { SessionScoreEvent } from "@/lib/session-stats";
 import { ArenaPageHeader } from "@/components/layout/arena-page-header";
 import {
@@ -67,6 +67,8 @@ export function ArenaPageClient({
   );
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [scoringMode, setScoringMode] = useState<ScoringMode>("classic");
+  const [participantSlots, setParticipantSlots] = useState<number | null>(null);
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
   const [totalBattlesCount, setTotalBattlesCount] = useState(
     initialArena?.totalCount ?? 0
@@ -98,7 +100,7 @@ export function ArenaPageClient({
     const { data: events } = await supabase
       .from("score_events")
       .select(
-        "id, winner_participant_id, participant_ids, created_at, created_by, deleted_at"
+        "id, winner_participant_id, participant_ids, placements, created_at, created_by, deleted_at"
       )
       .eq("session_id", sid)
       .order("created_at", { ascending: true });
@@ -127,6 +129,7 @@ export function ArenaPageClient({
       winner_member_id: null,
       winner_participant_id: e.winner_participant_id,
       participant_ids: e.participant_ids,
+      placements: (e.placements as Record<string, number> | null) ?? null,
       game_id: null,
       created_at: e.created_at,
       created_by: e.created_by,
@@ -151,6 +154,8 @@ export function ArenaPageClient({
       setGameName(battle.game_name);
       setParticipants(battle.participants);
       setStartedAt(battle.started_at);
+      setScoringMode(battle.scoring_mode);
+      setParticipantSlots(battle.participant_slots);
       setActiveSessionId(battle.id);
       setDetailSessionId(null);
       syncBattleUrl(sid);
@@ -414,6 +419,8 @@ export function ArenaPageClient({
             actorNames={actorNames}
             currentUserId={userId}
             startedAt={startedAt}
+            scoringMode={scoringMode}
+            participantSlots={participantSlots}
             readOnly={!canEditActive}
             canDelete={canDeleteActive}
             onBack={backToArena}

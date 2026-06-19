@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import type { ScoreEvent, StatsPlayer } from "@/lib/types";
+import type { ScoreEvent, ScoringMode, StatsPlayer } from "@/lib/types";
 import { playerIdFromName } from "@/lib/stats";
 
 export async function fetchUserStatsData() {
@@ -13,7 +13,7 @@ export async function fetchUserStatsData() {
 
   const { data: sessions } = await supabase
     .from("sessions")
-    .select("id, game_name")
+    .select("id, game_name, scoring_mode, participant_slots")
     .eq("created_by", user.id);
 
   const sessionIds = (sessions ?? []).map((s) => s.id);
@@ -28,12 +28,21 @@ export async function fetchUserStatsData() {
   const gameNameBySession = new Map(
     (sessions ?? []).map((s) => [s.id, s.game_name?.trim() || "—"])
   );
+  const scoringBySession = new Map(
+    (sessions ?? []).map((s) => [
+      s.id,
+      (s.scoring_mode ?? "classic") as ScoringMode,
+    ])
+  );
+  const slotsBySession = new Map(
+    (sessions ?? []).map((s) => [s.id, s.participant_slots as number | null])
+  );
 
   const [{ data: eventsRaw }, { data: participants }] = await Promise.all([
     supabase
       .from("score_events")
       .select(
-        "id, session_id, winner_participant_id, participant_ids, created_by, created_at, deleted_at"
+        "id, session_id, winner_participant_id, participant_ids, placements, created_by, created_at, deleted_at"
       )
       .in("session_id", sessionIds)
       .order("created_at", { ascending: true }),
@@ -64,26 +73,39 @@ export async function fetchUserStatsData() {
     players.map((p) => [p.display_name.toLowerCase(), p.id])
   );
 
+  const toPlayerId = (pid: string) => {
+    const name = nameByParticipantId.get(pid) ?? "?";
+    return nameToPlayerId.get(name.toLowerCase()) ?? playerIdFromName(name);
+  };
+
   const events: ScoreEvent[] = (eventsRaw ?? []).map((e) => {
-    const rosterIds = e.participant_ids.map((pid: string) => {
-      const name = nameByParticipantId.get(pid) ?? "?";
-      return nameToPlayerId.get(name.toLowerCase()) ?? playerIdFromName(name);
-    });
-    const winnerName =
-      nameByParticipantId.get(e.winner_participant_id) ?? "?";
-    const winnerPlayerId =
-      nameToPlayerId.get(winnerName.toLowerCase()) ??
-      playerIdFromName(winnerName);
+    const rosterIds = e.participant_ids.map(toPlayerId);
+    const winnerPlayerId = toPlayerId(e.winner_participant_id);
+
+    // Места перекладываем на имя-id игрока, чтобы очки агрегировались
+    // кросс-сессионно так же, как победы.
+    let placements: Record<string, number> | null = null;
+    if (e.placements && typeof e.placements === "object") {
+      placements = {};
+      for (const [pid, place] of Object.entries(
+        e.placements as Record<string, number>
+      )) {
+        placements[toPlayerId(pid)] = place;
+      }
+    }
 
     return {
       id: e.id,
       session_id: e.session_id,
       winner_participant_id: winnerPlayerId,
       participant_ids: rosterIds,
+      placements,
       created_by: e.created_by,
       created_at: e.created_at,
       deleted_at: e.deleted_at,
       game_name: gameNameBySession.get(e.session_id),
+      scoring_mode: scoringBySession.get(e.session_id),
+      participant_slots: slotsBySession.get(e.session_id) ?? null,
     };
   });
 

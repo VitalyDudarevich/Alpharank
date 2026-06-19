@@ -1,4 +1,5 @@
 import type { ScoreEvent, StatsFilter, MemberStats, StatsPlayer } from "./types";
+import { pointsForPlace } from "./session-stats";
 
 function normalizeRoster(ids: string[]): string {
   return [...ids].sort().join(",");
@@ -12,6 +13,9 @@ export function filterScoreEvents(
     if (e.deleted_at) return false;
     if (filter.gameName && e.game_name?.toLowerCase() !== filter.gameName.toLowerCase())
       return false;
+    if (filter.scoringMode && filter.scoringMode !== "all") {
+      if ((e.scoring_mode ?? "classic") !== filter.scoringMode) return false;
+    }
     if (
       filter.playerCount !== undefined &&
       e.participant_ids.length !== filter.playerCount
@@ -31,6 +35,7 @@ export function computeMemberStats(
 ): MemberStats[] {
   const wins = new Map<string, number>();
   const played = new Map<string, number>();
+  const points = new Map<string, number>();
 
   for (const e of events) {
     for (const pid of e.participant_ids) {
@@ -40,6 +45,12 @@ export function computeMemberStats(
       e.winner_participant_id,
       (wins.get(e.winner_participant_id) ?? 0) + 1
     );
+    if (e.placements) {
+      const slots = e.participant_slots ?? e.participant_ids.length;
+      for (const [pid, place] of Object.entries(e.placements)) {
+        points.set(pid, (points.get(pid) ?? 0) + pointsForPlace(slots, place));
+      }
+    }
   }
 
   const participantIds = new Set([...played.keys(), ...wins.keys()]);
@@ -55,9 +66,13 @@ export function computeMemberStats(
         wins: w,
         games_played: g,
         win_rate: g > 0 ? Math.round((w / g) * 100) : 0,
+        points: points.get(m.id) ?? 0,
       };
     })
-    .sort((a, b) => b.wins - a.wins || b.win_rate - a.win_rate);
+    .sort(
+      (a, b) =>
+        b.points - a.points || b.wins - a.wins || b.win_rate - a.win_rate
+    );
 }
 
 export function buildCumulativeTimeline(

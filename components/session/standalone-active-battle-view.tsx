@@ -11,13 +11,15 @@ import { DeferredArenaWinsChart } from "./deferred-arena-wins-chart";
 import { BattleReadonlyScoreboard } from "./battle-readonly-scoreboard";
 import { BattleActionsMenu } from "./battle-actions-menu";
 import { StandaloneBattleScoreboard } from "./standalone-battle-scoreboard";
+import { SmartBattleScoreboard } from "./smart-battle-scoreboard";
 import { SessionEventLog } from "./session-event-log";
 import { useSessionScoreEvents } from "./use-session-score-events";
 import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
 import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
 import { winCountsFromEvents } from "@/lib/arena-games";
 import { buildSessionLogEvents } from "@/lib/session-log";
-import type { BattleParticipant } from "@/lib/types";
+import { computeSessionPoints } from "@/lib/session-stats";
+import type { BattleParticipant, ScoringMode } from "@/lib/types";
 import type { SessionScoreEvent } from "@/lib/session-stats";
 
 type StandaloneActiveBattleViewProps = {
@@ -28,6 +30,8 @@ type StandaloneActiveBattleViewProps = {
   actorNames: Record<string, string>;
   currentUserId: string | null;
   startedAt: string | null;
+  scoringMode?: ScoringMode;
+  participantSlots?: number | null;
   readOnly?: boolean;
   canDelete?: boolean;
   onBack: () => void;
@@ -65,12 +69,16 @@ export function StandaloneActiveBattleView({
   actorNames,
   currentUserId,
   startedAt,
+  scoringMode = "classic",
+  participantSlots = null,
   readOnly = false,
   canDelete = false,
   onBack,
   onEnded,
   onDeleted,
 }: StandaloneActiveBattleViewProps) {
+  const isSmart = scoringMode === "smart";
+  const slots = participantSlots ?? participants.length;
   const [ending, startEndTransition] = useTransition();
   const [now, setNow] = useState(() => Date.now());
   const participantIds = participants.map((p) => p.id);
@@ -95,6 +103,11 @@ export function StandaloneActiveBattleView({
   const winCounts = useMemo(
     () => winCountsFromEvents(sessionEvents, null),
     [sessionEvents]
+  );
+
+  const pointTotals = useMemo(
+    () => (isSmart ? computeSessionPoints(sessionEvents, slots) : {}),
+    [isSmart, sessionEvents, slots]
   );
 
   const memberNames = useMemo(
@@ -188,13 +201,28 @@ export function StandaloneActiveBattleView({
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900/80">
-        <div className="border-b border-zinc-800 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
           <h2 className="text-sm font-medium text-zinc-400">Очки</h2>
+          {isSmart && (
+            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
+              Умный · {slots} мест
+            </span>
+          )}
         </div>
         {readOnly ? (
           <BattleReadonlyScoreboard
             participants={participants}
-            winCounts={winCounts}
+            winCounts={isSmart ? pointTotals : winCounts}
+          />
+        ) : isSmart ? (
+          <SmartBattleScoreboard
+            sessionId={sessionId}
+            gameName={gameName}
+            participants={participants}
+            currentUserId={currentUserId!}
+            slots={slots}
+            events={sessionEvents}
+            onEventAdded={appendEvent}
           />
         ) : (
           <StandaloneBattleScoreboard

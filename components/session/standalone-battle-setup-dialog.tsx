@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Gamepad2, Users, X } from "lucide-react";
+import { Gamepad2, Sparkles, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { startBattle } from "@/lib/actions/arena";
@@ -25,12 +25,16 @@ export function StandaloneBattleSetupDialog({
   const [knownGames, setKnownGames] = useState<string[]>([]);
   const [knownFriends, setKnownFriends] = useState<string[]>([]);
   const [participants, setParticipants] = useState<string[]>([]);
+  const [smartMode, setSmartMode] = useState(false);
+  const [slotsInput, setSlotsInput] = useState<string>("");
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!open) return;
     setGameName("");
     setParticipants([]);
+    setSmartMode(false);
+    setSlotsInput("");
     void Promise.all([
       fetchKnownGameNames().then(setKnownGames),
       fetchKnownFriendNames().then(setKnownFriends),
@@ -65,17 +69,34 @@ export function StandaloneBattleSetupDialog({
     setParticipants((prev) => prev.filter((p) => p !== name));
   };
 
-  const canStart = gameName.trim().length > 0 && participants.length >= 2;
+  // Число мест в умном режиме: по умолчанию = числу участников, можно больше.
+  const slots = smartMode
+    ? slotsInput.trim() === ""
+      ? participants.length
+      : Math.floor(Number(slotsInput))
+    : null;
+  const slotsValid =
+    !smartMode ||
+    (Number.isFinite(slots) && (slots as number) >= participants.length);
+
+  const canStart =
+    gameName.trim().length > 0 && participants.length >= 2 && slotsValid;
 
   const handleStart = () => {
-    if (!canStart) {
+    if (gameName.trim().length === 0 || participants.length < 2) {
       toast.error("Укажите игру и минимум 2 участников");
+      return;
+    }
+    if (!slotsValid) {
+      toast.error("Число мест должно быть не меньше числа участников");
       return;
     }
     startTransition(async () => {
       const result = await startBattle({
         gameName: gameName.trim(),
         participantNames: participants,
+        scoringMode: smartMode ? "smart" : "classic",
+        participantSlots: smartMode ? (slots as number) : undefined,
       });
       if (result.error) {
         toast.error(result.error);
@@ -133,6 +154,46 @@ export function StandaloneBattleSetupDialog({
               disabled={pending}
               placeholder="Найти или ввести игру…"
             />
+
+            <div className="space-y-2 rounded-xl border border-zinc-800 bg-zinc-800/30 p-3">
+              <label className="flex cursor-pointer items-center justify-between gap-3">
+                <span className="flex items-center gap-2 text-sm font-medium text-zinc-200">
+                  <Sparkles className="h-4 w-4 text-amber-400" />
+                  Умный подсчёт очков
+                </span>
+                <input
+                  type="checkbox"
+                  checked={smartMode}
+                  onChange={(e) => setSmartMode(e.target.checked)}
+                  disabled={pending}
+                  className="h-5 w-5 accent-violet-600"
+                />
+              </label>
+              <p className="text-xs text-zinc-600">
+                Очки за место: 1-е место даёт N очков, последнее — 1.
+              </p>
+              {smartMode && (
+                <div className="pt-1">
+                  <label className="mb-1 block text-xs font-medium text-zinc-500">
+                    Количество участников (мест)
+                  </label>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={Math.max(2, participants.length)}
+                    value={slotsInput}
+                    onChange={(e) => setSlotsInput(e.target.value)}
+                    placeholder={String(Math.max(2, participants.length))}
+                    disabled={pending}
+                    className="h-10 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100"
+                  />
+                  <p className="mt-1 text-xs text-zinc-600">
+                    По умолчанию = числу добавленных игроков ({participants.length}).
+                    Можно больше.
+                  </p>
+                </div>
+              )}
+            </div>
           </section>
 
           <section className="flex min-h-0 flex-1 flex-col space-y-2">

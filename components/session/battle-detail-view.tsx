@@ -13,7 +13,8 @@ import { DeferredArenaWinsChart } from "./deferred-arena-wins-chart";
 import { SessionEventLog } from "./session-event-log";
 import { PullToRefreshIndicator } from "./pull-to-refresh-indicator";
 import { usePullToRefresh } from "@/lib/use-pull-to-refresh";
-import type { BattleParticipant } from "@/lib/types";
+import { computeSessionPoints } from "@/lib/session-stats";
+import type { BattleParticipant, ScoringMode } from "@/lib/types";
 import type { SessionScoreEvent } from "@/lib/session-stats";
 
 type BattleDetailViewProps = {
@@ -59,6 +60,8 @@ export function BattleDetailView({
   const [sessionEvents, setSessionEvents] = useState<SessionScoreEvent[]>([]);
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [createdBy, setCreatedBy] = useState<string | null>(null);
+  const [scoringMode, setScoringMode] = useState<ScoringMode>("classic");
+  const [slots, setSlots] = useState<number | null>(null);
 
   const applyDetail = useCallback(
     (data: Awaited<ReturnType<typeof fetchBattleDetail>>) => {
@@ -71,6 +74,8 @@ export function BattleDetailView({
       setStartedAt(data.session.started_at);
       setEndedAt(data.session.ended_at);
       setCreatedBy(data.session.created_by);
+      setScoringMode(data.session.scoring_mode);
+      setSlots(data.session.participant_slots);
       setParticipants(data.participants);
       setActorNames(data.actorNames);
       setSessionEvents(
@@ -79,6 +84,7 @@ export function BattleDetailView({
           winner_member_id: null,
           winner_participant_id: e.winner_participant_id,
           participant_ids: e.participant_ids,
+          placements: e.placements ?? null,
           game_id: null,
           created_at: e.created_at,
           created_by: e.created_by ?? "",
@@ -123,6 +129,14 @@ export function BattleDetailView({
   const winCounts = useMemo(
     () => winCountsFromEvents(sessionEvents, null),
     [sessionEvents]
+  );
+  const isSmart = scoringMode === "smart";
+  const pointTotals = useMemo(
+    () =>
+      isSmart
+        ? computeSessionPoints(sessionEvents, slots ?? participants.length)
+        : {},
+    [isSmart, sessionEvents, slots, participants.length]
   );
   const logEvents = useMemo(
     () =>
@@ -213,12 +227,17 @@ export function BattleDetailView({
       </div>
 
       <section className="overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900/80">
-        <div className="border-b border-zinc-800 px-4 py-3">
+        <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
           <h2 className="text-sm font-medium text-zinc-400">Итог</h2>
+          {isSmart && (
+            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-300">
+              Умный · {slots ?? participants.length} мест
+            </span>
+          )}
         </div>
         <BattleReadonlyScoreboard
           participants={participants}
-          winCounts={winCounts}
+          winCounts={isSmart ? pointTotals : winCounts}
         />
       </section>
 

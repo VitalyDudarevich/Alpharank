@@ -9,9 +9,12 @@ import {
   seriesMemberNames,
 } from "@/lib/series-stats";
 import { createClient } from "@/lib/supabase/server";
-import type { BattleParticipant } from "@/lib/types";
+import type { BattleParticipant, ScoringMode } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SessionScoreEvent } from "@/lib/session-stats";
+
+const SESSION_COLUMNS =
+  "id, game_name, session_date, started_at, ended_at, status, created_by, scoring_mode, participant_slots";
 
 type SessionRow = {
   id: string;
@@ -21,6 +24,8 @@ type SessionRow = {
   ended_at: string | null;
   status: string;
   created_by: string;
+  scoring_mode: ScoringMode | null;
+  participant_slots: number | null;
 };
 
 export type ArenaBattlesPage = {
@@ -42,6 +47,8 @@ export type ArenaHistoryItem = {
   participant_names: string[];
   event_count: number;
   created_by: string;
+  scoring_mode: ScoringMode;
+  participant_slots: number | null;
 };
 
 export type ActiveBattleState = {
@@ -50,6 +57,8 @@ export type ActiveBattleState = {
   started_at: string | null;
   created_by: string;
   participants: BattleParticipant[];
+  scoring_mode: ScoringMode;
+  participant_slots: number | null;
 };
 
 export type BattleDetail = {
@@ -61,12 +70,15 @@ export type BattleDetail = {
     ended_at: string | null;
     status: string;
     created_by: string;
+    scoring_mode: ScoringMode;
+    participant_slots: number | null;
   };
   participants: BattleParticipant[];
   events: {
     id: string;
     winner_participant_id: string;
     participant_ids: string[];
+    placements: Record<string, number> | null;
     created_at: string;
     created_by: string | null;
     deleted_at: string | null;
@@ -79,7 +91,7 @@ export async function fetchBattleDetail(sessionId: string) {
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, game_name, session_date, started_at, ended_at, status, created_by")
+    .select(SESSION_COLUMNS)
     .eq("id", sessionId)
     .single();
 
@@ -96,7 +108,7 @@ export async function fetchBattleDetail(sessionId: string) {
     supabase
       .from("score_events")
       .select(
-        "id, winner_participant_id, participant_ids, created_at, created_by, deleted_at"
+        "id, winner_participant_id, participant_ids, placements, created_at, created_by, deleted_at"
       )
       .eq("session_id", sessionId)
       .order("created_at", { ascending: true }),
@@ -129,9 +141,11 @@ export async function fetchBattleDetail(sessionId: string) {
       ended_at: session.ended_at,
       status: session.status,
       created_by: session.created_by,
+      scoring_mode: (session.scoring_mode ?? "classic") as ScoringMode,
+      participant_slots: session.participant_slots,
     },
     participants: (participants ?? []) as BattleParticipant[],
-    events: events ?? [],
+    events: (events ?? []) as BattleDetail["events"],
     actorNames,
   } satisfies BattleDetail;
 }
@@ -194,6 +208,8 @@ function mapSessionRowsToHistoryItems(
       participant_names: names,
       event_count: eventCounts[row.id] ?? 0,
       created_by: row.created_by,
+      scoring_mode: (row.scoring_mode ?? "classic") as ScoringMode,
+      participant_slots: row.participant_slots,
     };
   });
 }
@@ -203,7 +219,7 @@ export async function fetchActiveBattle(sessionId: string) {
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, game_name, started_at, status, created_by")
+    .select("id, game_name, started_at, status, created_by, scoring_mode, participant_slots")
     .eq("id", sessionId)
     .single();
 
@@ -230,6 +246,8 @@ export async function fetchActiveBattle(sessionId: string) {
     started_at: session.started_at,
     created_by: session.created_by,
     participants: parts as BattleParticipant[],
+    scoring_mode: (session.scoring_mode ?? "classic") as ScoringMode,
+    participant_slots: session.participant_slots,
   } satisfies ActiveBattleState;
 }
 
@@ -242,7 +260,7 @@ async function fetchArenaBattlesPage(
     await Promise.all([
       supabase
         .from("sessions")
-        .select("id, game_name, session_date, started_at, ended_at, status, created_by")
+        .select(SESSION_COLUMNS)
         .eq("status", "active")
         .order("started_at", { ascending: false, nullsFirst: false }),
       supabase
@@ -251,7 +269,7 @@ async function fetchArenaBattlesPage(
         .eq("status", "ended"),
       supabase
         .from("sessions")
-        .select("id, game_name, session_date, started_at, ended_at, status, created_by")
+        .select(SESSION_COLUMNS)
         .eq("status", "ended")
         .order("ended_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
@@ -304,7 +322,7 @@ export async function fetchMoreArenaBattles(endedOffset: number) {
         .eq("status", "ended"),
       supabase
         .from("sessions")
-      .select("id, game_name, session_date, started_at, ended_at, status, created_by")
+      .select(SESSION_COLUMNS)
       .eq("status", "ended")
       .order("ended_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
@@ -419,6 +437,9 @@ export async function fetchSeriesDetail(sessionIds: string[]) {
 export async function startBattle(params: {
   gameName: string;
   participantNames: string[];
+  scoringMode?: ScoringMode;
+  /** Число мест для умного режима. */
+  participantSlots?: number;
 }) {
   const supabase = await createClient();
   const {
@@ -436,6 +457,19 @@ export async function startBattle(params: {
   if (!gameName) return { error: "Укажите название игры" };
   if (names.length < 2) return { error: "Нужно минимум 2 участника" };
 
+  const scoringMode: ScoringMode =
+    params.scoringMode === "smart" ? "smart" : "classic";
+  let participantSlots: number | null = null;
+  if (scoringMode === "smart") {
+    const slots = Math.floor(params.participantSlots ?? names.length);
+    if (!Number.isFinite(slots) || slots < names.length) {
+      return {
+        error: "Число мест должно быть не меньше числа участников",
+      };
+    }
+    participantSlots = slots;
+  }
+
   const today = new Date().toISOString().split("T")[0];
   const now = new Date().toISOString();
 
@@ -447,6 +481,8 @@ export async function startBattle(params: {
       game_name: gameName,
       status: "active",
       started_at: now,
+      scoring_mode: scoringMode,
+      participant_slots: participantSlots,
     })
     .select()
     .single();
