@@ -25,6 +25,10 @@ export function winCountsFromEvents(
   const counts: Record<string, number> = {};
   for (const event of filterSessionEventsByGame(events, gameId)) {
     const winnerId = eventWinnerId(event);
+    if (event.placements) {
+      const place = event.placements[winnerId];
+      if (place == null || place <= 0) continue;
+    }
     counts[winnerId] = (counts[winnerId] ?? 0) + 1;
   }
   return counts;

@@ -15,9 +15,9 @@ export function eventWinnerId(event: SessionScoreEvent): string {
   return event.winner_member_id ?? event.winner_participant_id ?? "";
 }
 
-/** Очки за место в умном режиме: N мест, 1-е место даёт N очков, последнее — 1. */
+/** Очки за место в умном режиме: N мест, 1-е место даёт N очков, последнее — 1. 0 = не участвовал. */
 export function pointsForPlace(slots: number, place: number): number {
-  if (!Number.isFinite(slots) || !Number.isFinite(place)) return 0;
+  if (!Number.isFinite(slots) || !Number.isFinite(place) || place <= 0) return 0;
   return Math.max(0, slots - place + 1);
 }
 
@@ -84,7 +84,8 @@ export function computePlayerTimelines(
 }
 
 /**
- * Таймлайн для умного режима: X = число игр (+1 за раунд), Y = сумма очков (+N за место).
+ * Таймлайн для умного режима: X = номер раунда (+1 за каждый раунд сражения),
+ * Y = сумма очков (+N за место, +0 если не участвовал).
  */
 export function computeSmartPlayerTimelines(
   events: SessionScoreEvent[],
@@ -97,12 +98,12 @@ export function computeSmartPlayerTimelines(
   }
 
   for (const event of sortedActiveEvents(events)) {
-    for (const pid of event.participant_ids) {
-      if (!timelines[pid]) timelines[pid] = [{ games: 0, wins: 0 }];
+    if (!event.placements) continue;
+    for (const pid of memberIds) {
       const last = timelines[pid][timelines[pid].length - 1];
-      const place = event.placements?.[pid];
+      const place = event.placements[pid];
       const roundPoints =
-        place != null ? pointsForPlace(slots, place) : 0;
+        place != null && place > 0 ? pointsForPlace(slots, place) : 0;
       timelines[pid].push({
         games: last.games + 1,
         wins: last.wins + roundPoints,
@@ -111,6 +112,20 @@ export function computeSmartPlayerTimelines(
   }
 
   return timelines;
+}
+
+/** Число раундов, в которых игрок реально участвовал (место > 0). */
+export function countSmartRoundsPlayed(
+  events: SessionScoreEvent[],
+  memberId: string
+): number {
+  let count = 0;
+  for (const event of sortedActiveEvents(events)) {
+    if (!event.placements) continue;
+    const place = event.placements[memberId];
+    if (place != null && place > 0) count++;
+  }
+  return count;
 }
 
 export function computeSessionPlayerStats(

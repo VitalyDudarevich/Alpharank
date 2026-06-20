@@ -144,9 +144,10 @@ export function BattleDetailView({
         sessionEvents,
         memberNames,
         actorNames,
-        currentUserId ?? ""
+        currentUserId ?? "",
+        isSmart ? slots ?? participants.length : null
       ),
-    [sessionEvents, memberNames, actorNames, currentUserId]
+    [sessionEvents, memberNames, actorNames, currentUserId, isSmart, slots, participants.length]
   );
 
   const durationMs =

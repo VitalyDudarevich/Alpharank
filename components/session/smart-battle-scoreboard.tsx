@@ -60,7 +60,9 @@ export function SmartBattleScoreboard({
     );
   }, [participants, totals, winCounts, entering]);
 
-  const takenPlaces = new Set(Object.values(places));
+  const takenPlaces = new Set(
+    Object.values(places).filter((place) => place > 0)
+  );
   const allAssigned = participants.every((p) => places[p.id] != null);
 
   const setPlace = (pid: string, place: number) => {
@@ -70,8 +72,10 @@ export function SmartBattleScoreboard({
         delete next[pid];
         return next;
       }
-      for (const key of Object.keys(next)) {
-        if (next[key] === place) delete next[key];
+      if (place > 0) {
+        for (const key of Object.keys(next)) {
+          if (next[key] === place) delete next[key];
+        }
       }
       next[pid] = place;
       return next;
@@ -98,11 +102,11 @@ export function SmartBattleScoreboard({
         return;
       }
       if (result.eventId) {
-        // Победитель — участник с лучшим (наименьшим) местом.
+        const active = Object.entries(roundPlaces).filter(([, place]) => place > 0);
         const winnerId =
-          Object.entries(roundPlaces).reduce((best, cur) =>
-            cur[1] < best[1] ? cur : best
-          )[0] ?? null;
+          active.length > 0
+            ? active.reduce((best, cur) => (cur[1] < best[1] ? cur : best))[0]
+            : null;
         onEventAdded?.({
           id: result.eventId,
           winner_member_id: null,
@@ -137,7 +141,9 @@ export function SmartBattleScoreboard({
                 </span>
                 {entering && places[p.id] != null && (
                   <span className="shrink-0 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-300">
-                    {places[p.id]}-е · +{pointsForPlace(slots, places[p.id])}
+                    {places[p.id] === 0
+                      ? "не играл · +0"
+                      : `${places[p.id]}-е · +${pointsForPlace(slots, places[p.id])}`}
                   </span>
                 )}
               </div>
@@ -151,6 +157,20 @@ export function SmartBattleScoreboard({
 
             {entering && (
               <div className="mt-2 flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  disabled={pending || disabled}
+                  onClick={() => setPlace(p.id, 0)}
+                  className={cn(
+                    "flex h-9 min-w-9 items-center justify-center rounded-lg border px-2 text-sm font-semibold tabular-nums transition-colors",
+                    places[p.id] === 0
+                      ? "border-zinc-500 bg-zinc-700/50 text-zinc-200"
+                      : "border-zinc-700 bg-zinc-800/60 text-zinc-400 hover:border-zinc-500"
+                  )}
+                  aria-label="Не участвовал, +0 очков"
+                >
+                  0
+                </button>
                 {Array.from({ length: slots }, (_, i) => i + 1).map((place) => {
                   const selected = places[p.id] === place;
                   const takenByOther = takenPlaces.has(place) && !selected;

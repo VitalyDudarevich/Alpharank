@@ -8,6 +8,14 @@ import { canUndoScoreEvent } from "@/lib/score-undo";
 import { toast } from "sonner";
 import { RotateCcw, Trophy } from "lucide-react";
 
+/** Строка результата участника в раунде умного подсчёта. */
+export type SessionLogStanding = {
+  name: string;
+  /** Место за раунд; 0 = не участвовал. */
+  place: number;
+  points: number;
+};
+
 export type SessionLogEvent = {
   id: string;
   winner_member_id: string;
@@ -18,6 +26,8 @@ export type SessionLogEvent = {
   created_by: string;
   created_at: string;
   deleted_at: string | null;
+  /** Места и очки участников за раунд (умный режим); null для обычных раундов. */
+  standings?: SessionLogStanding[] | null;
 };
 
 type SessionEventLogProps = {
@@ -76,17 +86,64 @@ export function SessionEventLog({
             <div className="flex min-w-0 gap-2">
               <Trophy className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
               <div className="min-w-0">
-                <p className="text-sm text-zinc-100">
-                  <span className="text-zinc-400">Игра </span>
-                  <span className="font-semibold tabular-nums text-zinc-100">
-                    {event.game_number}
-                  </span>
-                  <span className="text-zinc-500"> · +1 </span>
-                  <span className="font-medium text-violet-200">
-                    {event.winner_name}
-                  </span>
-                </p>
-                <p className="text-xs text-zinc-500">
+                {event.standings && event.standings.length > 0 ? (
+                  <p className="text-sm text-zinc-100">
+                    <span className="text-zinc-400">Раунд </span>
+                    <span className="font-semibold tabular-nums text-zinc-100">
+                      {event.game_number}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-zinc-100">
+                    <span className="text-zinc-400">Игра </span>
+                    <span className="font-semibold tabular-nums text-zinc-100">
+                      {event.game_number}
+                    </span>
+                    <span className="text-zinc-500"> · +1 </span>
+                    <span className="font-medium text-violet-200">
+                      {event.winner_name}
+                    </span>
+                  </p>
+                )}
+                {event.standings && event.standings.length > 0 && (
+                  <ul className="mt-1.5 flex flex-col gap-1">
+                    {event.standings.map((s, i) => (
+                      <li
+                        key={`${event.id}-${i}`}
+                        className="flex items-center gap-2 text-xs"
+                      >
+                        <span
+                          className={
+                            s.place === 0
+                              ? "shrink-0 tabular-nums text-zinc-600"
+                              : "shrink-0 tabular-nums font-semibold text-amber-300"
+                          }
+                        >
+                          {s.place === 0 ? "—" : `${s.place}-е`}
+                        </span>
+                        <span
+                          className={
+                            s.place === 0
+                              ? "min-w-0 truncate text-zinc-500"
+                              : "min-w-0 truncate text-zinc-200"
+                          }
+                        >
+                          {s.name}
+                        </span>
+                        <span
+                          className={
+                            s.place === 0
+                              ? "shrink-0 tabular-nums text-zinc-600"
+                              : "shrink-0 tabular-nums text-violet-300"
+                          }
+                        >
+                          {s.place === 0 ? "не играл" : `+${s.points}`}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="mt-1 text-xs text-zinc-500">
                   {event.actor_name}
                   {" · "}
                   {format(new Date(event.created_at), "d MMM, HH:mm:ss", {

@@ -15,7 +15,9 @@ import { buildMemberColorMap } from "@/lib/player-colors";
 import { filterSessionEventsByGame } from "@/lib/arena-games";
 import {
   computePlayerTimelines,
+  computeSessionPoints,
   computeSmartPlayerTimelines,
+  countSmartRoundsPlayed,
   type SessionScoreEvent,
 } from "@/lib/session-stats";
 import type { ScoringMode } from "@/lib/types";
@@ -49,6 +51,11 @@ export const ArenaWinsChart = memo(function ArenaWinsChart({
   const filteredEvents = useMemo(
     () => filterSessionEventsByGame(events, gameId),
     [events, gameId]
+  );
+
+  const pointTotals = useMemo(
+    () => (isSmart ? computeSessionPoints(filteredEvents, slots) : {}),
+    [isSmart, filteredEvents, slots]
   );
 
   const timelines = useMemo(
@@ -100,12 +107,12 @@ export const ArenaWinsChart = memo(function ArenaWinsChart({
             <XAxis
               type="number"
               dataKey="games"
-              name="Игры"
+              name={isSmart ? "Раунды" : "Игры"}
               allowDecimals={false}
               domain={[0, maxGames + 0.5]}
               tick={{ fill: "#a1a1aa", fontSize: 11 }}
               label={{
-                value: "Игры",
+                value: isSmart ? "Раунды" : "Игры",
                 position: "insideBottom",
                 offset: -2,
                 fill: "#71717a",
@@ -143,7 +150,8 @@ export const ArenaWinsChart = memo(function ArenaWinsChart({
                       <p className="font-medium text-zinc-100">{name}</p>
                     )}
                     <p className="text-zinc-400">
-                      {isSmart ? "Очков" : "Побед"}: {p.wins} · Игр: {p.games}
+                      {isSmart ? "Очков" : "Побед"}: {p.wins}
+                      {isSmart ? ` · Раунд: ${p.games}` : ` · Игр: ${p.games}`}
                     </p>
                   </div>
                 );
@@ -170,6 +178,10 @@ export const ArenaWinsChart = memo(function ArenaWinsChart({
           const points = timelines[id] ?? [{ games: 0, wins: 0 }];
           const last = points[points.length - 1];
           const name = memberNames[id] ?? "?";
+          const legendPoints = isSmart ? (pointTotals[id] ?? 0) : last.wins;
+          const legendGames = isSmart
+            ? countSmartRoundsPlayed(filteredEvents, id)
+            : last.games;
           return (
             <li
               key={id}
@@ -183,7 +195,7 @@ export const ArenaWinsChart = memo(function ArenaWinsChart({
                 <span className="truncate text-zinc-200">{name}</span>
               </span>
               <span className="shrink-0 tabular-nums text-zinc-500">
-                {last.wins} {isSmart ? "оч" : "поб"} · {last.games} игр
+                {legendPoints} {isSmart ? "оч" : "поб"} · {legendGames} игр
               </span>
             </li>
           );

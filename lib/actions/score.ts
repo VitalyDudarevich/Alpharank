@@ -107,26 +107,29 @@ export async function addRoundPlacements(params: {
     if (!participantIds.includes(pid)) {
       return { error: "Неизвестный участник в раунде" };
     }
-    if (!Number.isInteger(place) || place < 1 || place > slots) {
+    if (!Number.isInteger(place) || place < 0 || place > slots) {
       return { error: "Некорректное место" };
     }
   }
-  // Места не должны повторяться.
-  const places = entries.map(([, place]) => place);
-  if (new Set(places).size !== places.length) {
+  const activePlaces = entries
+    .filter(([, place]) => place > 0)
+    .map(([, place]) => place);
+  if (new Set(activePlaces).size !== activePlaces.length) {
     return { error: "Места не должны повторяться" };
   }
 
-  // Победитель (для счёта побед) — участник с лучшим (наименьшим) местом.
-  const winnerEntry = entries.reduce((best, cur) =>
-    cur[1] < best[1] ? cur : best
-  );
+  // Победитель — лучшее место среди реально участвовавших (место > 0).
+  const activeEntries = entries.filter(([, place]) => place > 0);
+  const winnerEntry =
+    activeEntries.length > 0
+      ? activeEntries.reduce((best, cur) => (cur[1] < best[1] ? cur : best))
+      : null;
 
   const { data: event, error } = await supabase
     .from("score_events")
     .insert({
       session_id: sessionId,
-      winner_participant_id: winnerEntry[0],
+      winner_participant_id: winnerEntry?.[0] ?? participantIds[0],
       participant_ids: participantIds,
       placements,
       created_by: user.id,

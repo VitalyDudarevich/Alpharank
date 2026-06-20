@@ -124,9 +124,10 @@ export function StandaloneActiveBattleView({
         sessionEvents,
         memberNames,
         actorNames,
-        currentUserId ?? ""
+        currentUserId ?? "",
+        isSmart ? slots : null
       ),
-    [sessionEvents, memberNames, actorNames, currentUserId]
+    [sessionEvents, memberNames, actorNames, currentUserId, isSmart, slots]
   );
 
   const roundsPlayed = logEvents.length;

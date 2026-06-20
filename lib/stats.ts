@@ -38,6 +38,27 @@ export function computeMemberStats(
   const points = new Map<string, number>();
 
   for (const e of events) {
+    if (e.deleted_at) continue;
+    if (e.placements) {
+      for (const pid of e.participant_ids) {
+        const place = e.placements[pid];
+        if (place != null && place > 0) {
+          played.set(pid, (played.get(pid) ?? 0) + 1);
+        }
+      }
+      const winnerPlace = e.placements[e.winner_participant_id];
+      if (winnerPlace != null && winnerPlace > 0) {
+        wins.set(
+          e.winner_participant_id,
+          (wins.get(e.winner_participant_id) ?? 0) + 1
+        );
+      }
+      const slots = e.participant_slots ?? e.participant_ids.length;
+      for (const [pid, place] of Object.entries(e.placements)) {
+        points.set(pid, (points.get(pid) ?? 0) + pointsForPlace(slots, place));
+      }
+      continue;
+    }
     for (const pid of e.participant_ids) {
       played.set(pid, (played.get(pid) ?? 0) + 1);
     }
@@ -45,12 +66,6 @@ export function computeMemberStats(
       e.winner_participant_id,
       (wins.get(e.winner_participant_id) ?? 0) + 1
     );
-    if (e.placements) {
-      const slots = e.participant_slots ?? e.participant_ids.length;
-      for (const [pid, place] of Object.entries(e.placements)) {
-        points.set(pid, (points.get(pid) ?? 0) + pointsForPlace(slots, place));
-      }
-    }
   }
 
   const participantIds = new Set([...played.keys(), ...wins.keys()]);

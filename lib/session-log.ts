@@ -1,6 +1,9 @@
-import type { SessionLogEvent } from "@/components/session/session-event-log";
+import type {
+  SessionLogEvent,
+  SessionLogStanding,
+} from "@/components/session/session-event-log";
 import type { SessionScoreEvent } from "@/lib/session-stats";
-import { eventWinnerId } from "@/lib/session-stats";
+import { eventWinnerId, pointsForPlace } from "@/lib/session-stats";
 
 /** Номер раунда на графике (ось X «Игры») для каждого события. */
 export function buildGameNumberMap(events: SessionScoreEvent[]): Map<string, number> {
@@ -18,11 +21,39 @@ export function buildGameNumberMap(events: SessionScoreEvent[]): Map<string, num
   return map;
 }
 
+/**
+ * Места и очки участников раунда умного режима, отсортированные по месту
+ * (не игравшие — место 0 — в конце). Возвращает null для обычных раундов.
+ */
+function buildStandings(
+  event: SessionScoreEvent,
+  memberNames: Record<string, string>,
+  slots: number
+): SessionLogStanding[] | null {
+  if (!event.placements) return null;
+  return event.participant_ids
+    .map((pid) => {
+      const place = event.placements?.[pid] ?? 0;
+      return {
+        name: memberNames[pid] ?? "?",
+        place,
+        points: pointsForPlace(slots, place),
+      };
+    })
+    .sort((a, b) => {
+      if (a.place === 0 && b.place === 0) return 0;
+      if (a.place === 0) return 1;
+      if (b.place === 0) return -1;
+      return a.place - b.place;
+    });
+}
+
 export function buildSessionLogEvents(
   sessionEvents: SessionScoreEvent[],
   memberNames: Record<string, string>,
   actorNames: Record<string, string>,
-  currentUserId: string
+  currentUserId: string,
+  slots?: number | null
 ): SessionLogEvent[] {
   const gameNumbers = buildGameNumberMap(sessionEvents);
 
@@ -47,6 +78,11 @@ export function buildSessionLogEvents(
         created_by: createdBy,
         created_at: e.created_at,
         deleted_at: e.deleted_at,
+        standings: buildStandings(
+          e,
+          memberNames,
+          slots ?? e.participant_ids.length
+        ),
       };
     });
 }
